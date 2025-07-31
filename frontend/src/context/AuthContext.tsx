@@ -42,6 +42,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       const response = await apiService.checkAuth();
       
       if (response.status === 'success' && response.data?.authenticated) {
+        // Get company type from backend response
         const companyType = response.data.company === 'private' ? 'private' : 'public';
         
         console.log('[AUTH] Auth check successful:', {
@@ -81,6 +82,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       const response = await apiService.login({ email, password });
       
       if (response.status === 'success' && response.data) {
+        // Get company type from backend response
         const companyType = response.data.company === 'private' ? 'private' : 'public';
         
         console.log('[AUTH] Login successful:', {
