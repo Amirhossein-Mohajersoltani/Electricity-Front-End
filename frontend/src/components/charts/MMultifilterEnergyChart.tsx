@@ -11,36 +11,34 @@ import {
 } from 'recharts';
 import type { FilterData } from "../DynamicFilterPanel";
 import type { EnergyComparisonResponseDataItem } from '../../types/api.interfaces';
-
+import type { ProcessedChartData } from '@/types/chartInterfaces';
 // ====================================================================
 // IMPORTANT: This interface assumes your API response items have these keys.
 // If your API returns different keys for the date/label and the value,
 // you MUST update 'period_label' and 'total_consumption' here and in the
 // 'useMemo' hook below.
 // ====================================================================
+
+//Raw item model returned from the API
 interface ApiDataItem extends EnergyComparisonResponseDataItem {
   period_label: string;
   total_consumption: number;
 }
 
-// This interface describes the data structure AFTER processing, ready for the chart.
-// It has a label and dynamic keys for each filter's data.
-interface ProcessedChartData {
-  period_label: string;
-  [filterId: string]: string | number; // Allows for dynamic filter IDs
-}
-
-// This interface matches the state in your EnergyComparison component
+//Storing data per filter
 interface MultiFilterEnergyData {
   [filterId: string]: ApiDataItem[];
 }
 
+//Defining input props for the component
 interface MultiFilterEnergyChartProps {
   multiData: MultiFilterEnergyData;
   filters: FilterData[];
   loading: boolean;
   title: string;
 }
+
+
 
 // A helper function to format large numbers for the Y-axis
 const formatEnergyValue = (value: number) => {

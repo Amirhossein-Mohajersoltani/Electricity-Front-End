@@ -12,26 +12,7 @@ import {
 } from "recharts";
 import { Maximize2 } from 'lucide-react';
 
-interface EnergyComparisonChartProps {
-  data?: {
-    energy_comparison?: {
-      result?: Array<{
-        energetic: number;
-        num_fidder: number;
-        year: number;
-      }>;
-    };
-  };
-  loading?: boolean;
-  onMaximize?: () => void;
-}
-
-interface ChartDataPoint {
-  name: string;
-  value: number;
-  year: number;
-  feeder: number;
-}
+import type { EnergyComparisonChartProps,ChartDataPoint } from '@/types/chartInterfaces';
 
 // Default test data based on your API sample
 const DEFAULT_DATA: ChartDataPoint[] = [
