@@ -4,6 +4,7 @@ import { TrendingUp, Users, Building, Wheat, Store, Sun, Shield, Maximize2 } fro
 import DynamicFilterPanel from '../components/DynamicFilterPanel';
 import FloatingFilterButton from '../components/FloatingFilterButton';
 import { apiService } from '../services/api';
+import type { DynamicFilterData } from '../types/filterInterfaces';
 
 interface TariffData {
   name: string;
@@ -11,16 +12,6 @@ interface TariffData {
   color: string;
   icon: React.ReactNode;
   description: string;
-}
-
-interface DynamicFilterData {
-  id: string;
-  name: string;
-  startDate: string;
-  endDate: string;
-  regions: string[];
-  feeders: string[];
-  color: string;
 }
 
 interface TooltipPayload {

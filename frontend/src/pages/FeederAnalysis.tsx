@@ -6,36 +6,7 @@ import MultiFilterChart from "../components/charts/MultiFilterChart";
 import { apiService } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 // import { useFullScreenChart } from "../hooks/useFullScreenChart";
-
-interface DynamicFilterData {
-  id: string;
-  name: string;
-  startDate: string;
-  endDate: string;
-  regions: string[];
-  feeders: string[];
-  color: string;
-}
-
-// Define types that exactly match what MultiFilterChart expects
-interface DailyPeakResult {
-  date: string;
-  amount: number;
-}
-
-interface FilterDataStructure {
-  daily_peak?: { result?: DailyPeakResult[] };
-  weekly_peak?: { result?: DailyPeakResult[] };
-  daily_profile_max?: { result?: DailyPeakResult[] };
-  daily_profile_mean?: { result?: DailyPeakResult[] };
-  load_continuity?: { result?: DailyPeakResult[] };
-  long_term?: { result?: DailyPeakResult[] };
-}
-
-interface MultiFilterAnalysisData {
-  [filterId: string]: FilterDataStructure;
-}
-
+import  type {DynamicFilterData,FilterDataStructure,MultiFilterAnalysisData} from '../types/filterInterfaces'
 // Define the chart type more specifically
 type ChartType = 'daily_peak' | 'weekly_peak' | 'daily_profile_max' | 'daily_profile_mean' | 'load_continuity' | 'long_term';
 

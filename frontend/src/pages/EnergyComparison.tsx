@@ -4,25 +4,10 @@ import type { FilterData } from "../components/DynamicFilterPanel"
 import FloatingFilterButton from "../components/FloatingFilterButton";
 import MultiFilterEnergyChart from "../components/charts/MultiFilterEnergyChart";
 import { apiService } from "../services/api";
-import type { EnergyComparisonRequest, EnergyComparisonResponseDataItem } from "../types/api.interfaces";
+import type { EnergyComparisonRequest,MultiFilterEnergyData } from "../types/api.interfaces";
 import { useAuth } from "../context/AuthContext";
 
 // --- CHANGED: Redefine the data structure to match what the chart expects ---
-// This interface now represents the full API response object for a single filter.
-interface ApiDataForChart {
-  data: {
-    energy_comparison: {
-      result: EnergyComparisonResponseDataItem[];
-    };
-  };
-  // You can add status, message, etc. if needed elsewhere
-}
-
-// The main state will hold a map from filterId to the full response object.
-interface MultiFilterEnergyData {
-  [filterId: string]: ApiDataForChart;
-}
-// ---
 
 const EnergyComparison = () => {
   useAuth();

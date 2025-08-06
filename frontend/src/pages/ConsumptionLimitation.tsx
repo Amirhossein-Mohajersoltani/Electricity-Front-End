@@ -9,33 +9,8 @@ import FloatingFilterButton from '@/components/FloatingFilterButton';
 // import { useFullScreenChart } from '@/hooks/useFullScreenChart';
 import { useAuth } from '@/context/AuthContext';
 import { apiService } from '@/services/api';
-
-interface ConsumptionLimitationItem {
-  'start date limit': string;
-  'end date limit': string;
-  'start date no limit': string;
-  'end date no limit': string;
-  'feeder code': number;
-  'consumption reduction factor': number;
-}
-
-interface ConsumptionLimitationFilterData {
-  fidder_code: string[];
-  region_code: string[];
-  no_limitation_start_date: string;
-  no_limitation_end_date: string;
-  limitation_start_date: string;
-  limitation_end_date: string;
-}
-
-interface DynamicFilterData {
-  id: string;
-  name: string;
-  regions: string[];
-  feeders: string[];
-  startDate: string;
-  endDate: string;
-}
+import type {DynamicFilterData,ConsumptionLimitationFilterData} from '../types/filterInterfaces';
+// import type {ConsumptionLimitationItem} from '../types/chartInterfaces';
 
 const ConsumptionLimitation = () => {
   const [data, setData] = useState<any>(null);
