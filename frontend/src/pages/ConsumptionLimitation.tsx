@@ -10,7 +10,7 @@ import FloatingFilterButton from '@/components/FloatingFilterButton';
 import { useAuth } from '@/context/AuthContext';
 import { apiService } from '@/services/api';
 import type {DynamicFilterData,ConsumptionLimitationFilterData} from '../types/filterInterfaces';
-// import type {ConsumptionLimitationItem} from '../types/chartInterfaces';
+import type {ConsumptionLimitationItem} from '../types/chartInterfaces';
 
 const ConsumptionLimitation = () => {
   const [data, setData] = useState<any>(null);

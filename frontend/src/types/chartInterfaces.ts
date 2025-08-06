@@ -246,4 +246,18 @@ export interface MultiFilterEnergyChartProps {
   title?: string;
 }
 //  --------------------------------------------------------------------------------------------
-
+// ** LoadDistribution page **
+export interface ChartDataPoint {
+  name: string;
+  value: number;
+  percentage: number;
+  color: string;
+}
+export interface TooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    value: number;
+    payload: ChartDataPoint;
+  }>;
+}
+//  --------------------------------------------------------------------------------------------

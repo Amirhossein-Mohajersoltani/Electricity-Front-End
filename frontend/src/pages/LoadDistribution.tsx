@@ -14,7 +14,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Maximize2, PieChart as PieChartIcon, BarChart3, Info } from 'lucide-react';
-
+import type { ChartDataPoint,TooltipProps } from '@/types/chartInterfaces';
 interface LoadDistributionProps {
   data?: {
     consumption_distribution?: {
@@ -31,12 +31,7 @@ interface LoadDistributionProps {
   loading?: boolean;
 }
 
-interface ChartDataPoint {
-  name: string;
-  value: number;
-  percentage: number;
-  color: string;
-}
+
 
 const COLORS = [
   '#8b5cf6', // Purple for domestic
@@ -56,13 +51,7 @@ const CATEGORY_MAPPING = {
   lighting: 'روشنایی'
 };
 
-interface TooltipProps {
-  active?: boolean;
-  payload?: Array<{
-    value: number;
-    payload: ChartDataPoint;
-  }>;
-}
+
 
 const CustomTooltip = ({ active, payload }: TooltipProps) => {
   if (active && payload && payload.length) {
