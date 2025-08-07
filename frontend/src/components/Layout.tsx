@@ -4,16 +4,13 @@ import { Switch } from "../components/ui/switch";
 import {
   LayoutDashboard,
   TrendingUp,
-
   Activity,
   Menu,
-
   LogOut,
   Settings,
   Users,
   Upload,
   PieChart,
-
   ChevronRight,
   TrendingDown
 } from "lucide-react";
@@ -25,7 +22,6 @@ interface NavigationItem {
   name: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
-  adminOnly?: boolean;
 }
 
 const Layout = () => {
@@ -36,109 +32,88 @@ const Layout = () => {
 
   // Extract user name from email
   const getUserName = (email: string | null): string => {
-    if (!email) return 'کاربر'
-    const name = email.split('@')[0]
-    if (name === 'techie') return 'مهندس توزیع برق'
-    if (name === 'flour.company') return 'مدیر شرکت'
-    return name
-  }
+    if (!email) return 'کاربر';
+    const name = email.split('@')[0];
+    if (name === 'techie') return 'مهندس توزیع برق';
+    if (name === 'flour.company') return 'مدیر شرکت';
+    return name;
+  };
 
   // Get user emoji based on email
   const getUserEmoji = (email: string | null): string => {
-    if (!email) return '👤'
-    const name = email.split('@')[0]
-    if (name === 'techie') return '👨‍💻'
-    if (name === 'flour.company') return '🏭'
-    return '👤'
-  }
+    if (!email) return '👤';
+    const name = email.split('@')[0];
+    if (name === 'techie') return '👨‍💻';
+    if (name === 'flour.company') return '🏭';
+    return '👤';
+  };
 
-  // Get company badge
-  const getCompanyBadge = (companyType: 'public' | 'private' | null) => {
+  const getCompanyBadge = (companyType: 'public' | 'private' | 'admin') => {
     if (companyType === 'private') {
       return (
         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
           شرکت خصوصی
         </span>
-      )
+      );
+    } else if (companyType === 'admin') {
+      return (
+        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+          پنل ادمین
+        </span>
+      );
     }
     return (
       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
         شرکت عمومی
       </span>
-    )
-  }
+    );
+  };
 
-  // Navigation based on company type
-  const getNavigation = (companyType: 'public' | 'private' | null): NavigationItem[] => {
+  const getNavigation = (type: 'public' | 'private' | 'admin'): NavigationItem[] => {
     const baseNavigation: NavigationItem[] = [
-      {
-        name: "داشبورد کلی",
-        href: "/dashboard",
-        icon: LayoutDashboard,
-      },
-      {
-        name: companyType === 'private' ? "تحلیل مصرف انرژی " : "تحلیل مصرف انرژی ",
-        href: "/feeder-analysis",
-        icon: Activity,
-      },
-      {
-        name: "مقایسه مصرف انرژی",
-        href: "/energy-comparison",
-        icon: TrendingUp,
-      },
+      { name: "داشبورد کلی", href: "/dashboard", icon: LayoutDashboard },
+      { name: "تحلیل مصرف انرژی", href: "/feeder-analysis", icon: Activity },
+      { name: "مقایسه مصرف انرژی", href: "/energy-comparison", icon: TrendingUp },
     ];
 
-    // Add company-specific navigation
-    if (companyType === 'public') {
-      if (companyType === "public") {
-        baseNavigation.push({
-          name: "سهم تعرفه‌ها",
-          href: "/tariff-share",
-          icon: PieChart,
-        });
-      }
-
-      baseNavigation.push({
-        name: "تحلیل محدودیت مصرف انرژی",
-        href: "/consumption-limitation",
-        icon: TrendingDown,
-      });
-      baseNavigation.push({
-        name: "آپلود اطلاعات",
-        href: "/csv-upload",
-        icon: Upload,
-      });
-      baseNavigation.push({
-        name: "مدیریت کاربران",
-        href: "/user-management",
-        icon: Users,
-        adminOnly: true,
-      });
-    } else if (companyType === 'private') {
-      baseNavigation.push({
-        name: "تحلیل محدودیت مصرف انرژی",
-        href: "/consumption-limitation",
-        icon: TrendingDown,
-      });
-      baseNavigation.push({
-        name: "آپلود اطلاعات",
-        href: "/csv-upload",
-        icon: Upload,
-      });
+    if (type === 'private') {
+      return [
+        ...baseNavigation,
+        { name: "تحلیل محدودیت مصرف انرژی", href: "/consumption-limitation", icon: TrendingDown },
+        { name: "آپلود اطلاعات", href: "/csv-upload", icon: Upload },
+      ];
+    }
+    
+    if (type === 'public') {
+      return [
+        ...baseNavigation,
+        { name: "سهم تعرفه‌ها", href: "/tariff-share", icon: PieChart },
+        { name: "تحلیل محدودیت مصرف انرژی", href: "/consumption-limitation", icon: TrendingDown },
+        { name: "آپلود اطلاعات", href: "/csv-upload", icon: Upload },
+      ];
+    }
+    
+    if (type === 'admin') {
+      return [
+        ...baseNavigation,
+        { name: "سهم تعرفه‌ها", href: "/tariff-share", icon: PieChart },
+        { name: "تحلیل محدودیت مصرف انرژی", href: "/consumption-limitation", icon: TrendingDown },
+        { name: "آپلود اطلاعات", href: "/csv-upload", icon: Upload },
+        { name: "مدیریت کاربران", href: "/user-management", icon: Users }, 
+      ];
     }
 
-    return baseNavigation;
+    return baseNavigation; 
   };
 
   const navigation = getNavigation(companyType);
 
   const handleLogout = async () => {
-    await logout()
-  }
+    await logout();
+  };
 
   return (
     <div className="min-h-screen bg-[#F9F9F9] flex">
-      {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-40 bg-black bg-opacity-25 lg:hidden"
@@ -146,7 +121,6 @@ const Layout = () => {
         />
       )}
 
-      {/* Sidebar */}
       <div className={cn(
         "fixed inset-y-0 right-0 z-50 w-80 bg-black text-white transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:inset-0 rounded-3xl m-3",
         sidebarOpen ? "translate-x-0" : "translate-x-full"
@@ -157,13 +131,12 @@ const Layout = () => {
             {/* Logo */}
             <div className="flex items-center justify-center">
               <h1 className="text-white text-xl font-bold text-center">
-                {companyType === 'private' ? 'سامانه تحلیل مصرف انرژی' : 'سامانه تحلیل مصرف انرژی'}
+                سامانه تحلیل مصرف انرژی
               </h1>
             </div>
 
             <div className="h-px bg-white/20"></div>
 
-            {/* Main Menu */}
             <div className="space-y-4">
               <p className="text-white/70 text-sm text-right" dir="rtl">منوی اصلی</p>
 
@@ -198,9 +171,7 @@ const Layout = () => {
             </div>
           </div>
 
-          {/* Bottom Section */}
           <div className="space-y-4">
-            {/* User Profile */}
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 bg-white/10 rounded-full flex items-center justify-center text-lg">
@@ -217,7 +188,6 @@ const Layout = () => {
 
               <div className="h-px bg-white/20"></div>
 
-              {/* Theme Toggle */}
               <div className="flex items-center justify-between" dir="rtl">
                 <span className="text-white text-sm">تم روشن</span>
                 <div className="flex items-center gap-2 bg-white/20 rounded-full p-1">
@@ -231,7 +201,6 @@ const Layout = () => {
 
               <div className="h-px bg-white/20"></div>
 
-              {/* Bottom Actions */}
               <div className="space-y-2">
                 <Link
                   to="/settings"
@@ -258,9 +227,7 @@ const Layout = () => {
         </div>
       </div>
 
-      {/* Main content */}
       <div className="flex-1 lg:mr-6">
-        {/* Mobile header */}
         <div className="lg:hidden">
           <div className="flex items-center justify-between h-16 px-4 bg-white shadow-sm border-b">
             <Button
@@ -271,13 +238,12 @@ const Layout = () => {
               <Menu className="h-5 w-5" />
             </Button>
             <h1 className="text-lg font-medium text-gray-900">
-              {companyType === 'private' ? 'پورتال انرژی شرکت' : 'پورتال انرژی'}
+              پورتال انرژی
             </h1>
-            <div /> {/* Spacer */}
+            <div />
           </div>
         </div>
 
-        {/* Page content */}
         <main className="flex-1 p-3">
           <Outlet />
         </main>
@@ -286,4 +252,4 @@ const Layout = () => {
   );
 };
 
-export default Layout; 
+export default Layout;
