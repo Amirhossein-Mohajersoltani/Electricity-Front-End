@@ -17,8 +17,10 @@ import {
   BarController,
   PieController
 } from 'chart.js';
+
 import type { ChartOptions, InteractionItem, ChartEvent } from 'chart.js';
 import { Chart, } from 'react-chartjs-2';
+import type { FullScreenChartProps, DrawingTool,DrawnElement,DetailedTooltip } from '@/types/chartInterfaces';
 
 // Register Chart.js components
 ChartJS.register(
@@ -37,47 +39,7 @@ ChartJS.register(
   PieController
 );
 
-interface FullScreenChartProps {
-  isOpen: boolean;
-  onClose: () => void;
-  chartData: any;
-  chartType: 'area' | 'line' | 'bar' | 'pie';
-  title: string;
-  description?: string;
-}
 
-interface DrawingTool {
-  id: string;
-  name: string;
-  icon: React.ReactNode;
-  cursor: string;
-}
-
-interface DrawnElement {
-  id: string;
-  type: string;
-  startX: number;
-  startY: number;
-  endX?: number;
-  endY?: number;
-  color: string;
-  width: number;
-  text?: string;
-  points?: { x: number; y: number }[];
-}
-
-interface DetailedTooltip {
-  visible: boolean;
-  x: number;
-  y: number;
-  data: {
-    label: string;
-    value: number;
-    index: number;
-    percentage?: number;
-    additionalInfo?: string;
-  } | null;
-}
 
 const drawingTools: DrawingTool[] = [
   { id: 'move', name: 'حرکت', icon: <Move className="w-4 h-4" />, cursor: 'move' },

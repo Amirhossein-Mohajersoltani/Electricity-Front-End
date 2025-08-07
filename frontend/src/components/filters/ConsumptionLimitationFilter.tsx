@@ -3,21 +3,7 @@ import { Calendar, MapPin, Zap, Filter, X } from 'lucide-react';
 import { apiService } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import PersianDatePicker from '../PersianDatePicker';
-
-// --- Interfaces ---
-interface ConsumptionLimitationFilterData {
-  fidder_code: string[];
-  region_code: string[];
-  no_limitation_start_date: string;
-  no_limitation_end_date: string;
-  limitation_start_date: string;
-  limitation_end_date: string;
-}
-
-interface ConsumptionLimitationFilterProps {
-  onFilter: (data: ConsumptionLimitationFilterData) => void;
-  loading?: boolean;
-}
+import type { ConsumptionLimitationFilterData,ConsumptionLimitationFilterProps } from '../../types/filterInterfaces';
 
 // --- Component Definition ---
 const ConsumptionLimitationFilter: React.FC<ConsumptionLimitationFilterProps> = ({

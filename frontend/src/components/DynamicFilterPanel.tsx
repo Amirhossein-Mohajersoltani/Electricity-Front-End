@@ -14,26 +14,8 @@ import { useAuth } from '../context/AuthContext';
 import PersianDatePicker from './PersianDatePicker';
 import MultiSelect from './ui/multi-select';
 import api from '../services/api';
+import type { FilterData, DynamicFilterPanelProps } from '../types/filterInterfaces';
 
-  interface FilterData {
-  id: string;
-  name: string;
-  startDate?: string;
-  endDate?: string;
-  regions: (string | number)[];
-  feeders: string[];
-  color: string;
-  period?: string;
-  costume_period?: string;
-}
-
-interface DynamicFilterPanelProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onApplyFilters: (filters: FilterData[]) => void;
-  title?: string;
-  supportedAnalyses?: string[];
-}
 
 const FILTER_COLORS = [
   '#3B82F6', '#EF4444', '#10B981', '#F59E0B',

@@ -12,22 +12,8 @@ import {
 } from 'recharts';
 import { Maximize2, Loader2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext'; // Make sure the path is correct
+import type { ConsumptionLimitationItem,ConsumptionLimitationChartProps } from '../../types/chartInterfaces';
 
-interface ConsumptionLimitationItem {
-  'start date limit': string;
-  'end date limit': string;
-  'start date no limit': string;
-  'end date no limit': string;
-  'feeder code'?: number; // Feeder code is optional for private companies
-  'consumption reduction factor': number;
-}
-
-interface ConsumptionLimitationChartProps {
-  data: any;
-  loading?: boolean;
-  onMaximize?: () => void;
-  filterInfo?: any;
-}
 
 const ConsumptionLimitationChart: React.FC<ConsumptionLimitationChartProps> = ({
   data,

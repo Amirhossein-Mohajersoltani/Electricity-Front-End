@@ -11,7 +11,13 @@ import {
   Brush,
 } from 'recharts';
 import { useAuth } from '../../context/AuthContext';
-
+import type {
+  ResultItem,
+  ApiData,
+  FilterData,
+  MultiFilterEnergyChartProps,
+  
+} from "@/types/chartInterfaces";
 // ... (Constants and Interfaces remain unchanged) ...
 const DATA_KEYS = {
   ENERGETIC: 'energetic',
@@ -25,34 +31,7 @@ const MESSAGES = {
   TOTAL_ENERGY: 'مجموع کل توان',
 } as const;
 
-interface ResultItem {
-  energetic: number;
-  'fidder code': number;
-  period_end: string;
-  period_start: string;
-  period_num: number;
-}
 
-interface ApiData {
-  data: {
-    energy_comparison: {
-      result: ResultItem[];
-    };
-  };
-}
-
-interface FilterData {
-  id: string;
-  name: string;
-  color: string;
-}
-
-interface MultiFilterEnergyChartProps {
-  multiData: Record<string, ApiData>;
-  filters: FilterData[];
-  loading?: boolean;
-  title?: string;
-}
 
 
 // ✅ 1. فیلتر مقادیر صفر از این تابع حذف شد

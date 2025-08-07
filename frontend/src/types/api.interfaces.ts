@@ -99,9 +99,12 @@ export interface DashboardResponse {
 // FILTER AND REQUEST INTERFACES
 // ===========================================
 
-/**
- * Base filter request for analysis endpoints
- */
+// The main state will hold a map from filterId to the full response object.
+export interface MultiFilterEnergyData {
+  [filterId: string]: ApiDataForChart;
+}
+
+// Base filter request for analysis endpoints
 export interface FilterRequest {
   fidder_code: string;
   start_date: string;
@@ -111,9 +114,8 @@ export interface FilterRequest {
   customDays: string;
 }
 
-/**
- * Extended filter request with arrays for multiple selections
- */
+
+//Extended filter request with arrays for multiple selections
 export interface FilterRequestArray {
   fidder_code: string[];
   region_code: string[];
@@ -121,17 +123,14 @@ export interface FilterRequestArray {
   end_date: string;
 }
 
-/**
- * Feeder/Region request for data retrieval
- */
+//  Feeder/Region request for data retrieval
 export interface FeederRegionRequest {
   region_code?: string | string[];
   fidder_code?: string;
 }
 
-/**
- * Consumption distribution specific request
- */
+
+  // Consumption distribution specific request
 export interface ConsumptionDistributionRequest {
   fidder_code: string[];
   region_code: string[];
@@ -445,6 +444,16 @@ export interface UploadProgress {
 // ===========================================
 // CHART DATA INTERFACES
 // ===========================================
+
+// This interface now represents the full API response object for a single filter.
+export interface ApiDataForChart {
+  data: {
+    energy_comparison: {
+      result: EnergyComparisonResponseDataItem[];
+    };
+  };
+  // You can add status, message, etc. if needed elsewhere
+}
 
 /**
  * Chart data point for time-series charts
