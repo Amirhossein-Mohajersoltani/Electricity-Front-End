@@ -24,7 +24,7 @@ print("Login Response:", login_response.json())
 # params = {
 #     "company_names": ["بازار بزرگ اطلس", "بناگست"],
 #     "start_date": "1403-01-01",
-#     "end_date": "1404-06-01"
+#     "end_date": "1403-01-03"
 # }
 # analysis_response = s.post("http://127.0.0.1:5000/api/fidder-analysis", json=params)
 # print("Analysis Response:", analysis_response.json())
@@ -44,7 +44,7 @@ print("Login Response:", login_response.json())
 # params = {
 #     "company_names": ["بازار بزرگ اطلس", "بناگست"],
 #     "start_date": "1403-01-01",
-#     "end_date": "1404-06-01",
+#     "end_date": "1403-02-03",
 #     "period": "custom",
 #     "costume_period": 20
 # }
@@ -86,8 +86,8 @@ print("Login Response:", login_response.json())
 
 # 4
 # -----------------
-# get fidder-region for private company names
-# response = s.post("http://127.0.0.1:5000/api/get-fidder-region")
+# get private company names
+# response = s.post("http://127.0.0.1:5000/api/get-private-companies")
 # print(response.json())
 # ----------------
 

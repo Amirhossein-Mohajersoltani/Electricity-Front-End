@@ -16,6 +16,7 @@ from config import Config
 from utils import get_years_between, admin_request
 from server_log import *
 import company_info
+# pytest: disable
 
 # Instruction for adding new user and data
 # 1- add fidders
@@ -175,7 +176,7 @@ def get_csrf_token():
 
 @app.route('/api/test-session', methods=['POST'])
 @api_log_and_auth
-def test_session():
+def run_test_session():
     session['test_key'] = 'test_value'
     session['test_timestamp'] = datetime.datetime.now().isoformat()
     return api_response(data={"session_contents": dict(session), "test_message": "Session test completed"})
@@ -521,8 +522,7 @@ def get_fidder_region():
 
 
 
-    if session.get("user_email") == "sadjad.admin@gmail.com":
-        return api_response(data={"company_names": company_info.private_company_names})
+
 
     data = request.get_json()
 
@@ -645,6 +645,13 @@ def get_fidder_region():
                                   code=500)
 
     return result
+
+
+@app.route('/api/get-private-companies', methods=['POST'])
+@api_log_and_auth
+def get_private_companies():
+    return api_response(data={"company_names": company_info.private_company_names})
+
 
 
 @app.route('/api/import-power-consumption', methods=['POST'])
