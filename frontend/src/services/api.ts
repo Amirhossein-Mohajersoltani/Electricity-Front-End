@@ -142,7 +142,7 @@ const BACKEND_API_BASE_URL = getApiBaseUrl();
 async function backendApiCall<T>(
 endpoint: string, 
 data?: Record<string, unknown> | LoginRequest | FilterRequest | FeederRegionRequest | ConsumptionDistributionRequest | EnergyComparisonRequest | ConsumptionLimitationRequest,
-method: 'GET' | 'POST' = 'POST'
+method: 'POST' = 'POST'
 ): Promise<ApiResponse<T>> {
 const fullUrl = `${BACKEND_API_BASE_URL}${endpoint}`;
 
@@ -313,9 +313,12 @@ async getPrivateCompanyAnalysis(params: {
   company_names: string[];
   start_date: string;
   end_date: string;
-}): Promise<ApiResponse<Record<string, FeederAnalysisResponse>>> {
+}): Promise<ApiResponse<GenericApiResponse<Record<string, FeederAnalysisResponse>>>> {
   console.log('[ANALYSIS] Requesting private company analysis:', params);
-  return backendApiCall<Record<string, FeederAnalysisResponse>>('/fidder-analysis', params);
+  return backendApiCall<GenericApiResponse<Record<string, FeederAnalysisResponse>>>(
+  '/fidder-analysis',
+  params
+);
 }
 
 // ===========================================
@@ -325,9 +328,12 @@ async getPrivateCompanyAnalysis(params: {
 /**
  * Get comprehensive feeder analysis
  */
-async getFeederAnalysis(params: FilterRequest): Promise<ApiResponse<FeederAnalysisResponse>> {
+async getFeederAnalysis(params: FilterRequest): Promise<ApiResponse<GenericApiResponse<Record<string, FeederAnalysisResponse>>>> {
   console.log('[ANALYSIS] Requesting feeder analysis:', params);
-  return backendApiCall<FeederAnalysisResponse>('/fidder-analysis', params);
+  return backendApiCall<GenericApiResponse<Record<string, FeederAnalysisResponse>>>(
+  '/fidder-analysis',
+  params
+);
 }
 
 /**
@@ -415,21 +421,25 @@ async getEnergyComparisonByYears(
  * Get feeder analysis by arrays - Enhanced for private companies
  */
 async getFeederAnalysisByArrays(
-  fidder_code: string[], 
-  region_code: string[], 
-  start_date: string, 
+  fidder_code: string[],
+  region_code: string[],
+  start_date: string,
   end_date: string,
   company_names?: string[]
-): Promise<ApiResponse<GenericApiResponse<FeederAnalysisResponse>>> {
-  
+): Promise<ApiResponse<GenericApiResponse<FeederAnalysisResponse | Record<string, FeederAnalysisResponse>>>>
+{
+
   // If company_names are provided, use the private company structure
   if (company_names && company_names.length > 0) {
-    const request = { 
-      company_names, 
-      start_date, 
-      end_date 
+    const request = {
+      company_names,
+      start_date,
+      end_date
     };
-    return backendApiCall<GenericApiResponse<FeederAnalysisResponse>>('/fidder-analysis', request);
+  return backendApiCall<GenericApiResponse<Record<string, FeederAnalysisResponse>>>(
+  '/fidder-analysis',
+  request
+);
   }
 
   // Otherwise use the regular structure

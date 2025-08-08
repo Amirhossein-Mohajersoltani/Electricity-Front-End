@@ -122,8 +122,8 @@ export interface LongTermData extends BaseResult {
 export interface FilterDataStructure {
   daily_peak: DailyPeakData;
   weekly_peak: WeeklyPeakData;
-  daily_profil_max: DailyProfileData;
-  daily_profil_mean: DailyProfileData;
+  daily_profile_max: DailyProfileData;
+  daily_profile_mean: DailyProfileData;
   load_continuity: LoadContinuityData;
   Load_continuity: LoadContinuityData; // Fallback for inconsistent naming
   long_term: LongTermData;

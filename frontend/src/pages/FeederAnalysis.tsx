@@ -33,8 +33,8 @@ export default function FeederAnalysis() {
   const chartOptions = [
     { id: 'daily_peak' as ChartType, name: 'پیک روزانه', description: companyType === 'private' ? 'نمودار مصرف پیک روزانه خط تولید' : 'نمودار مصرف پیک روزانه فیدر' },
     { id: 'weekly_peak' as ChartType, name: 'پیک هفتگی', description: 'حداکثر مصرف هفتگی' },
-    { id: 'daily_profil_max' as ChartType, name: 'پروفیل روزانه (حداکثر)', description: 'حداکثر مصرف ساعتی' },
-    { id: 'daily_profil_mean' as ChartType, name: 'پروفیل روزانه (میانگین)', description: 'میانگین مصرف ساعتی' },
+    { id: 'daily_profile_max' as ChartType, name: 'پروفیل روزانه (حداکثر)', description: 'حداکثر مصرف ساعتی' },
+    { id: 'daily_profile_mean' as ChartType, name: 'پروفیل روزانه (میانگین)', description: 'میانگین مصرف ساعتی' },
     { id: 'load_continuity' as ChartType, name: 'تداوم بار', description: companyType === 'private' ? 'تحلیل تداوم و پایداری بار خط تولید' : 'تحلیل تداوم و پایداری بار فیدر' },
     { id: 'long_term' as ChartType, name: 'تحلیل بلندمدت', description: 'روند مصرف در طول زمان' }
   ];
@@ -56,7 +56,7 @@ export default function FeederAnalysis() {
       for (const filter of filters) {
         console.log('🔄 Processing filter:', filter.name, filter);
 
-        if (companyType === 'private') {
+        if (companyType === 'admin') {
           const companyNames = filter.companyNames || [];
 
           if (companyNames.length === 0) {
@@ -85,83 +85,75 @@ export default function FeederAnalysis() {
               const companyKeys = Object.keys(companiesData);
 
               if (companyKeys.length > 0) {
-                const firstCompanyKey = companyKeys[0];
-                const companyData = companiesData[firstCompanyKey];
+                for (const companyKey of companyKeys) {
+                  const companyData = companiesData[companyKey];
 
-                console.log(`📊 Using data from company: ${firstCompanyKey}`, companyData);
+                  const transformedData: FilterDataStructure = companyData as unknown as FilterDataStructure;
+                  console.log(transformedData);
 
-                // ✅ FIX: Corrected property access from 'profile' to 'profil' to match standardized naming
-                const transformedData: FilterDataStructure = {
-                  daily_peak: companyData.daily_peak || { result: [] },
-                  weekly_peak: companyData.weekly_peak || { result: [] },
-                  daily_profil_max: companyData.daily_profil_max || { result: [] },
-                  daily_profil_mean: companyData.daily_profil_mean || { result: [] },
-                  load_continuity: companyData.load_continuity || { result: [] },
-                  Load_continuity: companyData.load_continuity || { result: [] }, // Fallback for different naming
-                  long_term: companyData.long_term || { result: [] }
-                };
-
-                newMultiFilterData[filter.id] = transformedData;
+                  // اضافه کردن هر شرکت با کلید اختصاصی (مثلاً ترکیب filter.id و companyKey)
+                  newMultiFilterData[`${companyKey}`] = transformedData;
+                }
               }
+            } else {
+              console.error('❌ Private company API call failed:', response);
+              setError(`خطا در بارگذاری داده‌های شرکت ${filter.name}: ${response.message || 'نامشخص'}`);
             }
+
           } else {
-            console.error('❌ Private company API call failed:', response);
-            setError(`خطا در بارگذاری داده‌های شرکت ${filter.name}: ${response.message || 'نامشخص'}`);
-          }
+            let feedersToSend: string[] = [];
+            let regionsToSend: string[] = [];
 
-        } else {
-          let feedersToSend: string[] = [];
-          let regionsToSend: string[] = [];
-
-          // ✅ FIX: Ensure feeders array elements are strings for the API call
-          feedersToSend = filter.feeders && filter.feeders.length > 0 ? filter.feeders.map(String) : [];
-          // ✅ FIX: Ensure regions array elements are strings for the API call
-          regionsToSend = (filter.regions || []).map(String);
+            // ✅ FIX: Ensure feeders array elements are strings for the API call
+            feedersToSend = filter.feeders && filter.feeders.length > 0 ? filter.feeders.map(String) : [];
+            // ✅ FIX: Ensure regions array elements are strings for the API call
+            regionsToSend = (filter.regions || []).map(String);
 
 
-          console.log('🏢 Public company request:', {
-            fidder_code: feedersToSend,
-            region_code: regionsToSend,
-            start_date: filter.startDate,
-            end_date: filter.endDate
-          });
+            console.log('🏢 Public company request:', {
+              fidder_code: feedersToSend,
+              region_code: regionsToSend,
+              start_date: filter.startDate,
+              end_date: filter.endDate
+            });
 
-          const response = await apiService.getFeederAnalysisByArrays(
-            feedersToSend,
-            regionsToSend,
-          
-            filter.startDate ?? '',
-            filter.endDate ?? ''
-          );
+            const response = await apiService.getFeederAnalysisByArrays(
+                feedersToSend,
+                regionsToSend,
+                // Use nullish coalescing for safety as date might be undefined
+                filter.startDate ?? '',
+                filter.endDate ?? ''
+            );
 
-          if (response.status === 'success' && response.data) {
-            console.log('✅ Public company API response:', response.data);
-            try {
-              const transformedData: FilterDataStructure = response.data as unknown as FilterDataStructure;
-              newMultiFilterData[filter.id] = transformedData;
-            } catch (error) {
-              console.error('Error transforming data for filter:', filter.id, error);
-              newMultiFilterData[filter.id] = {
-                daily_peak: { result: [] },
-                weekly_peak: { result: [] },
-                daily_profil_max: { result: [] },
-                daily_profil_mean: { result: [] },
-                load_continuity: { result: [] },
-                Load_continuity: { result: [] },
-                long_term: { result: [] }
-              };
+            if (response.status === 'success' && response.data) {
+              console.log('✅ Public company API response:', response.data);
+              try {
+                const transformedData: FilterDataStructure = response.data as unknown as FilterDataStructure;
+                newMultiFilterData[filter.id] = transformedData;
+              } catch (error) {
+                console.error('Error transforming data for filter:', filter.id, error);
+                newMultiFilterData[filter.id] = {
+                  daily_peak: {result: []},
+                  weekly_peak: {result: []},
+                  daily_profile_max: {result: []},
+                  daily_profile_mean: {result: []},
+                  load_continuity: {result: []},
+                  Load_continuity: {result: []},
+                  long_term: {result: []}
+                };
+              }
+            } else {
+              console.error('❌ Public company API call failed:', response);
+              setError(`خطا در بارگذاری داده‌های فیلتر ${filter.name}: ${response.message || 'نامشخص'}`);
             }
-          } else {
-            console.error('❌ Public company API call failed:', response);
-            setError(`خطا در بارگذاری داده‌های فیلتر ${filter.name}: ${response.message || 'نامشخص'}`);
           }
         }
+
+        console.log('📊 Final multi-filter data:', newMultiFilterData);
+        setMultiFilterData(newMultiFilterData);
+
       }
-
-      console.log('📊 Final multi-filter data:', newMultiFilterData);
-      setMultiFilterData(newMultiFilterData);
-
-    } catch (error) {
+    }catch (error) {
       console.error('❌ Multi-filter API call failed:', error);
       setError('خطا در بارگذاری داده‌های چندگانه: ' + (error instanceof Error ? error.message : 'نامشخص'));
     } finally {
