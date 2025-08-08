@@ -35,6 +35,16 @@ interface ChartDataPoint {
   originalData?: unknown;
   source?: string;
 }
+const defaultColors = [
+  "#8884d8",
+  "#82ca9d",
+  "#ffc658",
+  "#ff7300",
+  "#0088FE",
+  "#00C49F",
+  "#FFBB28",
+  "#FF8042"
+];
 
 const CustomBrushHandle = ({
   x = 0,
@@ -106,10 +116,10 @@ const MultiFilterChart: React.FC<MultiFilterChartProps> = ({
   const chartData = useMemo(() => {
     const dataMap = new Map<string, Record<string, unknown>>();
     
-    filters.forEach((filter) => {
-      const filterData = multiData[filter.id];
+    for (const key of Object.keys(multiData)) {
+      const filterData = multiData[key];
       if (!filterData) {
-        console.warn(`⚠️ No data found for filter: ${filter.name} (${filter.id})`);
+        console.warn(`⚠️ No data found for filter: ${key} (${key})`);
         return;
       }
 
@@ -146,7 +156,7 @@ const MultiFilterChart: React.FC<MultiFilterChartProps> = ({
           }
 
           case "daily_profile_max": {
-            const dailyProfileMaxData = filterData.daily_profil_max;
+            const dailyProfileMaxData = filterData.daily_profile_max;
             if (dailyProfileMaxData?.result && Array.isArray(dailyProfileMaxData.result)) {
               extractedPoints = dailyProfileMaxData.result.map(
                 (item: DailyProfileResult): ChartDataPoint => ({
@@ -159,7 +169,7 @@ const MultiFilterChart: React.FC<MultiFilterChartProps> = ({
           }
 
           case "daily_profile_mean": {
-            const dailyProfileMeanData = filterData.daily_profil_mean;
+            const dailyProfileMeanData = filterData.daily_profile_mean;
             if (dailyProfileMeanData?.result && Array.isArray(dailyProfileMeanData.result)) {
               extractedPoints = dailyProfileMeanData.result.map(
                 (item: DailyProfileResult): ChartDataPoint => ({
@@ -176,7 +186,7 @@ const MultiFilterChart: React.FC<MultiFilterChartProps> = ({
             const loadContinuityData = filterData.load_continuity || filterData.Load_continuity;
             
             if (!loadContinuityData || !loadContinuityData.result || !Array.isArray(loadContinuityData.result)) {
-              console.warn(`⚠️ No load continuity data for filter: ${filter.name}`);
+              console.warn(`⚠️ No load continuity data for filter: ${key}`);
               break;
             }
 
@@ -234,7 +244,7 @@ const MultiFilterChart: React.FC<MultiFilterChartProps> = ({
             break;
         }
       } catch (error) {
-        console.error(`❌ Error processing ${chartType} data for filter ${filter.name}:`, error);
+        console.error(`❌ Error processing ${chartType} data for filter ${key}:`, error);
       }
 
       // Add extracted points to the data map
@@ -244,10 +254,10 @@ const MultiFilterChart: React.FC<MultiFilterChartProps> = ({
         }
         const existing = dataMap.get(point.key);
         if (existing) {
-          existing[filter.id] = point.value;
+          existing[key] = point.value;
         }
       });
-    });
+    }
 
     const result = Array.from(dataMap.values());
     console.log(`📊 Chart data for ${chartType}:`, result.length, 'points');
@@ -261,14 +271,14 @@ const MultiFilterChart: React.FC<MultiFilterChartProps> = ({
     let overallMax = -Infinity;
 
     chartData.forEach((dataPoint) => {
-      filters.forEach((filter) => {
-        const value = dataPoint[filter.id] as number;
-        if (typeof value === "number" && !isNaN(value)) {
-          if (value < overallMin) overallMin = value;
-          if (value > overallMax) overallMax = value;
-        }
-      });
+    Object.keys(multiData).forEach((key) => {
+      const value = dataPoint[key] as number;
+      if (typeof value === "number" && !isNaN(value)) {
+        if (value < overallMin) overallMin = value;
+        if (value > overallMax) overallMax = value;
+      }
     });
+  });
 
     if (overallMin === Infinity) return { min: 0, max: 100 };
 
@@ -412,7 +422,8 @@ const MultiFilterChart: React.FC<MultiFilterChartProps> = ({
     );
   }
 
-  const brushLine = filters.length > 0 ? filters[0].id : "";
+  const brushLine = Object.keys(multiData).length > 0 ? Object.keys(multiData)[0] : "";
+
 
   return (
     <div className="w-full bg-white p-6 sm:p-6 rounded-2xl shadow-lg border border-gray-200/80">
@@ -420,7 +431,7 @@ const MultiFilterChart: React.FC<MultiFilterChartProps> = ({
         <div>
           <h3 className="text-xl font-bold text-gray-900">{title}</h3>
           <p className="text-sm text-gray-500 mt-1">
-            مقایسه {filters.length} فیلتر مختلف
+            مقایسه {Object.keys(multiData).length} فیلتر مختلف
           </p>
         </div>
 
@@ -581,19 +592,23 @@ const MultiFilterChart: React.FC<MultiFilterChartProps> = ({
               }}
             />
 
-            {filters.map((filter) => (
+            {Object.keys(multiData).map((key, index) => {
+            const filter = filters.find(f => f.id === key);
+            const strokeColor = filter?.color || defaultColors[index % defaultColors.length];
+            return (
               <Line
-                key={filter.id}
+                key={key}
                 type="monotone"
-                dataKey={filter.id}
-                name={filter.name}
-                stroke={filter.color}
+                dataKey={key}
+                name={filter?.name || key}
+                stroke={strokeColor}
                 strokeWidth={2.5}
                 dot={false}
                 activeDot={{ r: 7, strokeWidth: 2, stroke: "#ffffff" }}
                 connectNulls={false}
               />
-            ))}
+            );
+          })}
 
             <Brush
               dataKey="key"
