@@ -260,10 +260,6 @@ def get_fidder_analysis():
 
 
 
-    if fidder_codes[0] == "private_company_feeder":
-        fidder_codes = [1]
-    if region_codes[0] == "private_company_region":
-        region_codes = [1]
 
     # For admin:
     if session.get("user_email") == "sadjad.admin@gmail.com":
@@ -279,6 +275,10 @@ def get_fidder_analysis():
             admin_response[company_name] = result
         return api_response(data=admin_response)
 
+    if fidder_codes[0] == "private_company_feeder":
+        fidder_codes = [1]
+    if region_codes[0] == "private_company_region":
+        region_codes = [1]
 
 
     if not start_date or not end_date:
