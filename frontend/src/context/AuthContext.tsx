@@ -3,26 +3,24 @@ import type { ReactNode } from 'react';
 import apiService from '../services/api';
 
 // --- Type Definitions ---
-// ✅ **IMPROVEMENT**: companyType دیگر نمی‌تواند null باشد
 interface AuthState {
   isAuthenticated: boolean;
   userEmail: string | null;
-  companyType: 'public' | 'private'; // null حذف شد
+  companyType: 'public' | 'private' | 'admin'; 
   loading: boolean;
 }
 
 interface AuthContextType extends AuthState {
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (email: string, password:string) => Promise<boolean>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
 }
 
 // --- Logged-out State Constant ---
-// ✅ **IMPROVEMENT**: یک مقدار پیش‌فرض برای companyType در نظر گرفته شده است
 const loggedOutState: AuthState = {
   isAuthenticated: false,
   userEmail: null,
-  companyType: 'public', // مقدار پیش‌فرض 'public' است
+  companyType: 'public',
   loading: false,
 };
 
@@ -54,21 +52,26 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       const response = await apiService.checkAuth();
 
       if (response.status === 'success' && response.data?.authenticated) {
-        // ✅ **IMPROVEMENT**: منطق جدید برای جلوگیری از مقدار null
-        // اگر نوع شرکت 'private' باشد، همان را برمی‌گرداند؛ در غیر این صورت، پیش‌فرض 'public' خواهد بود
-        const companyType: 'public' | 'private' =
-          response.data.company === 'private' ? 'private' : 'public';
+       
+        const responseCompany = response.data.company;
+        let companyType: 'public' | 'private' | 'admin' = 'public'; 
+
+        if (responseCompany === 'private') {
+          companyType = 'private';
+        } else if (responseCompany === 'admin') {
+          companyType = 'admin';
+        }
 
         console.log('[AUTH] Auth check successful:', {
           email: response.data.email,
           company: response.data.company,
-          companyType: companyType
+          resolvedCompanyType: companyType 
         });
 
         setAuthState({
           isAuthenticated: true,
           userEmail: response.data.email || null,
-          companyType: companyType, // این مقدار همیشه 'public' یا 'private' خواهد بود
+          companyType: companyType, 
           loading: false,
         });
       } else {
@@ -81,25 +84,32 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
+  // ✅ **REFACTORED**: این تابع نیز برای مدیریت نوع 'admin' بازنویسی شد
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       const response = await apiService.login({ email, password });
 
       if (response.status === 'success' && response.data) {
-        // ✅ **IMPROVEMENT**: منطق جدید برای جلوگیری از مقدار null
-        const companyType: 'public' | 'private' =
-          response.data.company === 'private' ? 'private' : 'public';
+        // ✅ **IMPROVEMENT**: منطق جدید برای تشخیص صحیح نوع شرکت
+        const responseCompany = response.data.company;
+        let companyType: 'public' | 'private' | 'admin' = 'public'; 
+
+        if (responseCompany === 'private') {
+          companyType = 'private';
+        } else if (responseCompany === 'admin') {
+          companyType = 'admin';
+        }
         
         console.log('[AUTH] Login successful:', {
           email: response.data.email,
           company: response.data.company,
-          companyType: companyType
+          resolvedCompanyType: companyType 
         });
 
         setAuthState({
           isAuthenticated: true,
           userEmail: response.data.email,
-          companyType: companyType, // این مقدار همیشه 'public' یا 'private' خواهد بود
+          companyType: companyType, 
           loading: false,
         });
         return true;

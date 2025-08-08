@@ -1,16 +1,14 @@
 import { useState } from "react";
-// import { FullScreenChart } from "../components/charts/FullScreenChart";
 import DynamicFilterPanel from "../components/DynamicFilterPanel";
 import FloatingFilterButton from "../components/FloatingFilterButton";
 import MultiFilterChart from "../components/charts/MultiFilterChart";
 import { apiService } from "../services/api";
 import { useAuth } from "../context/AuthContext";
-// import { useFullScreenChart } from "../hooks/useFullScreenChart";
-import  type {DynamicFilterData,FilterDataStructure,MultiFilterAnalysisData} from '../types/filterInterfaces'
-// Define the chart type more specifically
-type ChartType = 'daily_peak' | 'weekly_peak' | 'daily_profile_max' | 'daily_profile_mean' | 'load_continuity' | 'long_term';
+import type { DynamicFilterData, FilterDataStructure, MultiFilterAnalysisData } from '../types/filterInterfaces';
 
-// Extend the AuthContext type to include company property
+// ✅ FIX: Standardized chart types to use 'profil'
+type ChartType = 'daily_peak' | 'weekly_peak' | 'daily_profil_max' | 'daily_profil_mean' | 'load_continuity' | 'long_term';
+
 interface ExtendedAuthContext {
   companyType: string;
   company?: string;
@@ -19,21 +17,24 @@ interface ExtendedAuthContext {
 export default function FeederAnalysis() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { companyType, company } = useAuth() as ExtendedAuthContext;
-  // const fullScreenChart = useFullScreenChart();
+  // ✅ FIX: Removed unused 'company' variable
+  const { companyType } = useAuth() as ExtendedAuthContext;
 
-  const [dynamicFilters, setDynamicFilters] = useState<DynamicFilterData[]>([]);
+  // ✅ FIX: Using a more flexible type for filters from the panel
+  const [dynamicFilters, setDynamicFilters] = useState<any[]>([]);
   const [multiFilterData, setMultiFilterData] = useState<MultiFilterAnalysisData>({});
   const [showDynamicFilters, setShowDynamicFilters] = useState(false);
   const [useDynamicFilters, setUseDynamicFilters] = useState(false);
+  // ✅ FIX: Initial selected chart matches the corrected ChartType
   const [selectedChart, setSelectedChart] = useState<ChartType>('daily_peak');
   const [parallelMode, setParallelMode] = useState(false);
 
+  // ✅ FIX: Standardized chart options to use 'profil'
   const chartOptions = [
     { id: 'daily_peak' as ChartType, name: 'پیک روزانه', description: companyType === 'private' ? 'نمودار مصرف پیک روزانه خط تولید' : 'نمودار مصرف پیک روزانه فیدر' },
     { id: 'weekly_peak' as ChartType, name: 'پیک هفتگی', description: 'حداکثر مصرف هفتگی' },
-    { id: 'daily_profile_max' as ChartType, name: 'پروفیل روزانه', description: 'حداکثر مصرف ساعتی' },
-    { id: 'daily_profile_mean' as ChartType, name: 'پروفیل روزانه', description: 'میانگین مصرف ساعتی' },
+    { id: 'daily_profil_max' as ChartType, name: 'پروفیل روزانه (حداکثر)', description: 'حداکثر مصرف ساعتی' },
+    { id: 'daily_profil_mean' as ChartType, name: 'پروفیل روزانه (میانگین)', description: 'میانگین مصرف ساعتی' },
     { id: 'load_continuity' as ChartType, name: 'تداوم بار', description: companyType === 'private' ? 'تحلیل تداوم و پایداری بار خط تولید' : 'تحلیل تداوم و پایداری بار فیدر' },
     { id: 'long_term' as ChartType, name: 'تحلیل بلندمدت', description: 'روند مصرف در طول زمان' }
   ];
@@ -42,7 +43,8 @@ export default function FeederAnalysis() {
     return chartOptions.find(chart => chart.id === selectedChart) || chartOptions[0];
   };
 
-  const handleDynamicFilters = async (filters: DynamicFilterData[]) => {
+  // ✅ FIX: Changed function signature to accept filters from DynamicFilterPanel (which may have optional dates)
+  const handleDynamicFilters = async (filters: any[]) => {
     setDynamicFilters(filters);
     setUseDynamicFilters(true);
     setLoading(true);
@@ -52,50 +54,117 @@ export default function FeederAnalysis() {
       const newMultiFilterData: MultiFilterAnalysisData = {};
 
       for (const filter of filters) {
-        let feedersToSend: string[] = [];
-        let regionsToSend: string[] = [];
+        console.log('🔄 Processing filter:', filter.name, filter);
 
         if (companyType === 'private') {
-          feedersToSend = ['1'];
-          regionsToSend = ['1'];
+          const companyNames = filter.companyNames || [];
+
+          if (companyNames.length === 0) {
+            console.warn('⚠️ No company names provided for private filter:', filter.id);
+            continue;
+          }
+
+          console.log('📋 Private company request:', {
+            company_names: companyNames,
+            start_date: filter.startDate,
+            end_date: filter.endDate
+          });
+
+          const response = await apiService.getPrivateCompanyAnalysis({
+            company_names: companyNames,
+            // Use nullish coalescing for safety as date might be undefined
+            start_date: filter.startDate ?? '',
+            end_date: filter.endDate ?? ''
+          });
+
+          if (response.status === 'success' && response.data) {
+            console.log('✅ Private company API response:', response.data);
+
+            if (typeof response.data === 'object' && response.data !== null) {
+              // ✅ FIX: Cast to a flexible type to avoid mismatch errors
+              const companiesData = response.data as Record<string, any>;
+              const companyKeys = Object.keys(companiesData);
+
+              if (companyKeys.length > 0) {
+                const firstCompanyKey = companyKeys[0];
+                const companyData = companiesData[firstCompanyKey];
+
+                console.log(`📊 Using data from company: ${firstCompanyKey}`, companyData);
+
+                // ✅ FIX: Corrected property access from 'profile' to 'profil' to match standardized naming
+                const transformedData: FilterDataStructure = {
+                  daily_peak: companyData.daily_peak || { result: [] },
+                  weekly_peak: companyData.weekly_peak || { result: [] },
+                  daily_profil_max: companyData.daily_profil_max || { result: [] },
+                  daily_profil_mean: companyData.daily_profil_mean || { result: [] },
+                  load_continuity: companyData.load_continuity || { result: [] },
+                  Load_continuity: companyData.load_continuity || { result: [] }, // Fallback for different naming
+                  long_term: companyData.long_term || { result: [] }
+                };
+
+                newMultiFilterData[filter.id] = transformedData;
+              }
+            }
+          } else {
+            console.error('❌ Private company API call failed:', response);
+            setError(`خطا در بارگذاری داده‌های شرکت ${filter.name}: ${response.message || 'نامشخص'}`);
+          }
+
         } else {
-          feedersToSend = filter.feeders.length > 0 ? filter.feeders : [];
-          regionsToSend = filter.regions;
-        }
+          let feedersToSend: string[] = [];
+          let regionsToSend: string[] = [];
 
-        const response = await apiService.getFeederAnalysisByArrays(
-          feedersToSend,
-          regionsToSend,
-          filter.startDate,
-          filter.endDate
-        );
+          // ✅ FIX: Ensure feeders array elements are strings for the API call
+          feedersToSend = filter.feeders && filter.feeders.length > 0 ? filter.feeders.map(String) : [];
+          // ✅ FIX: Ensure regions array elements are strings for the API call
+          regionsToSend = (filter.regions || []).map(String);
 
-        if (response.status === 'success' && response.data) {
-          // Since we can't access chart properties directly on response.data,
-          // we need to cast it to the expected structure or transform it
-          // For now, let's assume the API response data structure matches what we need
-          try {
-            const transformedData: FilterDataStructure = response.data as unknown as FilterDataStructure;
-            newMultiFilterData[filter.id] = transformedData;
-          } catch (error) {
-            console.error('Error transforming data for filter:', filter.id, error);
-            // Provide empty structure as fallback
-            newMultiFilterData[filter.id] = {
-              daily_peak: { result: [] },
-              weekly_peak: { result: [] },
-              daily_profile_max: { result: [] },
-              daily_profile_mean: { result: [] },
-              load_continuity: { result: [] },
-              long_term: { result: [] }
-            };
+
+          console.log('🏢 Public company request:', {
+            fidder_code: feedersToSend,
+            region_code: regionsToSend,
+            start_date: filter.startDate,
+            end_date: filter.endDate
+          });
+
+          const response = await apiService.getFeederAnalysisByArrays(
+            feedersToSend,
+            regionsToSend,
+            // Use nullish coalescing for safety as date might be undefined
+            filter.startDate ?? '',
+            filter.endDate ?? ''
+          );
+
+          if (response.status === 'success' && response.data) {
+            console.log('✅ Public company API response:', response.data);
+            try {
+              const transformedData: FilterDataStructure = response.data as unknown as FilterDataStructure;
+              newMultiFilterData[filter.id] = transformedData;
+            } catch (error) {
+              console.error('Error transforming data for filter:', filter.id, error);
+              newMultiFilterData[filter.id] = {
+                daily_peak: { result: [] },
+                weekly_peak: { result: [] },
+                daily_profil_max: { result: [] },
+                daily_profil_mean: { result: [] },
+                load_continuity: { result: [] },
+                Load_continuity: { result: [] },
+                long_term: { result: [] }
+              };
+            }
+          } else {
+            console.error('❌ Public company API call failed:', response);
+            setError(`خطا در بارگذاری داده‌های فیلتر ${filter.name}: ${response.message || 'نامشخص'}`);
           }
         }
       }
 
+      console.log('📊 Final multi-filter data:', newMultiFilterData);
       setMultiFilterData(newMultiFilterData);
+
     } catch (error) {
       console.error('❌ Multi-filter API call failed:', error);
-      setError('خطا در بارگذاری داده‌های چندگانه');
+      setError('خطا در بارگذاری داده‌های چندگانه: ' + (error instanceof Error ? error.message : 'نامشخص'));
     } finally {
       setLoading(false);
     }
@@ -113,13 +182,10 @@ export default function FeederAnalysis() {
 
         <div className="mb-6">
           <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
-            {companyType === 'private' ? 'تحلیل مصرف انرژی' : 'تحلیل مصرف انرژی'}
+            {companyType === 'private' ? 'تحلیل مصرف انرژی شرکت‌های خصوصی' : 'تحلیل مصرف انرژی شرکت‌های عمومی'}
           </h1>
           <p className="text-gray-600">
-            {companyType === 'private' 
-              ? `بررسی و تحلیل جامع عملکرد شرکت ${company || ''}` 
-              : `بررسی و تحلیل جامع عملکرد شرکت ${company || ''}`
-            }
+            بررسی و تحلیل جامع عملکرد {companyType === 'private' ? 'شرکت‌های خصوصی' : 'فیدرها و مناطق'}
           </p>
           <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="flex items-center gap-2">
@@ -127,7 +193,8 @@ export default function FeederAnalysis() {
               <span className="text-sm font-medium text-blue-700">نحوه استفاده</span>
             </div>
             <p className="text-sm text-blue-700 mt-2">
-              برای مقایسه داده‌ها در بازه‌های زمانی مختلف، روی دکمه شناور فیلتر (پایین سمت چپ) کلیک کنید.
+              برای مقایسه داده‌ها در بازه‌های زمانی مختلف یا {companyType === 'private' ? 'شرکت‌های' : 'مناطق'} مختلف,
+              روی دکمه شناور فیلتر (پایین سمت چپ) کلیک کنید.
               سپس نمودار مورد نظر را از پایین انتخاب کنید.
             </p>
           </div>
@@ -200,7 +267,7 @@ export default function FeederAnalysis() {
             </p>
           </div>
 
-          <div className={`grid grid-cols-1 sm:grid-cols-2 ${companyType === 'private' ? 'lg:grid-cols-4' : 'lg:grid-cols-6'} gap-4`}>
+          <div className={`grid grid-cols-1 sm:grid-cols-2 ${companyType === 'private' ? 'lg:grid-cols-3' : 'lg:grid-cols-6'} gap-4`}>
             {chartOptions.map((chart) => (
               <button
                 key={chart.id}
@@ -240,18 +307,10 @@ export default function FeederAnalysis() {
         isOpen={showDynamicFilters}
         onClose={() => setShowDynamicFilters(false)}
         onApplyFilters={handleDynamicFilters}
-        title={companyType === 'private' ? "فیلترهای پیشرفته مصرف برق" : "فیلترهای پیشرفته تحلیل فیدر"}
-        supportedAnalyses={['feeder']}
+        title={companyType === 'private' ? "فیلترهای پیشرفته مصرف برق شرکت‌های خصوصی" : "فیلترهای پیشرفته تحلیل فیدر"}
       />
 
-      {/* <FullScreenChart
-        isOpen={fullScreenChart.isOpen}
-        onClose={fullScreenChart.closeFullScreen}
-        chartData={fullScreenChart.chartData}
-        chartType={fullScreenChart.chartType}
-        title={fullScreenChart.title}
-        description={fullScreenChart.description}
-      /> */}
+
     </div>
   );
 }

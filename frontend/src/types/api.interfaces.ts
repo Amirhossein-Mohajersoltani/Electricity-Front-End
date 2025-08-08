@@ -1,4 +1,4 @@
-// src/types/api.interfaces.ts - COMPLETE TYPE DEFINITIONS FOR ELECTRICITY COMPANY PROJECT
+// src/types/api.interfaces.ts - COMPLETE TYPE DEFINITIONS (REFACTORED AND CORRECTED)
 
 // ===========================================
 // CORE API INTERFACES
@@ -11,22 +11,6 @@ export interface ApiResponse<T = unknown> {
   status: "success" | "error";
   message: string;
   data?: T;
-}
-
-// src/types/api.interfaces.ts
-
-// ... (کدهای دیگر فایل)
-
-export interface FilterData {
-  id: string;
-  name: string;
-  startDate?: string;
-  endDate?: string;
-  regions: (string|number)[];
-  feeders: string[];
-  color: string;
-  period?: string;
-  costume_period?: string;
 }
 
 /**
@@ -99,6 +83,29 @@ export interface DashboardResponse {
 // FILTER AND REQUEST INTERFACES
 // ===========================================
 
+/**
+ * Unified FilterData definition for the DynamicFilterPanel.
+ * Supports both public (region/feeder) and private (companyNames) filters.
+ */
+export interface FilterData {
+  id: string;
+  name: string;
+  color: string;
+  
+  // Date and period fields
+  startDate?: string;
+  endDate?: string;
+  period?: 'weekly' | 'monthly' | 'yearly' | 'custom';
+  costume_period?: string;
+
+  // Fields for public companies
+  regions?: (string | number)[];
+  feeders?: string[];
+
+  // Field for private companies
+  companyNames?: string[];
+}
+
 // The main state will hold a map from filterId to the full response object.
 export interface MultiFilterEnergyData {
   [filterId: string]: ApiDataForChart;
@@ -110,10 +117,9 @@ export interface FilterRequest {
   start_date: string;
   end_date: string;
   region_code: string;
-  rangeType: string;
-  customDays: string;
+  rangeType?: string;
+  customDays?: string;
 }
-
 
 //Extended filter request with arrays for multiple selections
 export interface FilterRequestArray {
@@ -123,14 +129,13 @@ export interface FilterRequestArray {
   end_date: string;
 }
 
-//  Feeder/Region request for data retrieval
+// Feeder/Region request for data retrieval
 export interface FeederRegionRequest {
   region_code?: string | string[];
   fidder_code?: string;
 }
 
-
-  // Consumption distribution specific request
+// Consumption distribution specific request
 export interface ConsumptionDistributionRequest {
   fidder_code: string[];
   region_code: string[];
@@ -139,52 +144,16 @@ export interface ConsumptionDistributionRequest {
 }
 
 /**
- * Energy comparison request with year support
+ * Unified and corrected request type for energy comparison.
  */
-// src/types/api.interfaces.ts
-
-// ... (کدهای دیگر فایل)
-
-// ✅ **تغییر ۱:** تعریف نوع داده برای یک آیتم در آرایه result بر اساس نمونه واقعی
-export interface EnergyComparisonResponseDataItem {
-  "fidder code": number; // کلید با فاصله
-  period_num: number;
-  period_start: string;
-  period_end: string;
-  energetic: number;
-}
-
-// ✅ **تغییر ۲:** تعریف ساختار کامل شیء data در پاسخ API
-export interface EnergyComparisonResponse {
-  region_code: number[];
-  fidder_code: number[] | null;
-  company_id: number[];
-  costume_period: string | null;
-  status: string;
-  period: string;
-  result: EnergyComparisonResponseDataItem[];
-}
-
-// ✅ **تغییر ۳:** تعریف نوع درخواست برای آخرین بار جهت اطمینان
 export interface EnergyComparisonRequest {
-  start_date: string;
-  end_date: string;
   region_code: (string | number)[];
   fidder_code: string[];
+  start_date?: string;
+  end_date?: string;
   period?: string;
-  costume_period?: string | null; // املای صحیح بر اساس نمونه بک‌اند
-  years: string[];
-}
-
-// ... (بقیه کدهای فایل)
-
-export interface EnergyComparisonDataItem {
-  section: string;
-  consumption: number;
-  year?: number;
-  num_fidder?: string;
-  energetic?: number;
-  amount?: number;
+  costume_period?: string | null;
+  years?: string[];
 }
 
 /**
@@ -216,9 +185,37 @@ export interface FeederRegionResponse {
   total_fidders?: number;
 }
 
+/**
+ * ADDED: Response type for the private companies endpoint.
+ */
+export interface PrivateCompaniesResponse {
+    company_names: string[];
+}
+
 // ===========================================
 // ANALYSIS RESPONSE INTERFACES
 // ===========================================
+
+/**
+ * Corrected data item for the energy comparison API response.
+ */
+export interface EnergyComparisonResponseDataItem {
+  "fidder code"?: number; // Key with space
+  period_num?: number;
+  period_start?: string;
+  period_end?: string;
+  energetic?: number;
+  section?: string;
+  consumption?: number;
+  year?: number;
+  num_fidder?: string;
+  amount?: number;
+}
+
+/**
+ * Corrected full response type for energy comparison.
+ */
+export type EnergyComparisonResponse = EnergyComparisonResponseDataItem[];
 
 /**
  * Daily peak analysis response
@@ -289,32 +286,6 @@ export interface TariffDistribution {
   agricultural: number;
   lighting: number;
   administrative: number;
-}
-
-/**
- * Energy comparison analysis response
- */
-export interface EnergyComparisonResponse {
-  feeder_comparison: FeederComparison[];
-  time_comparison: TimeComparison;
-}
-
-/**
- * Individual feeder comparison data
- */
-export interface FeederComparison {
-  feeder_code: string;
-  consumption: number;
-  efficiency: number;
-}
-
-/**
- * Time-based comparison data
- */
-export interface TimeComparison {
-  current_period: number;
-  previous_period: number;
-  change_percentage: number;
 }
 
 // ===========================================
@@ -452,7 +423,6 @@ export interface ApiDataForChart {
       result: EnergyComparisonResponseDataItem[];
     };
   };
-  // You can add status, message, etc. if needed elsewhere
 }
 
 /**

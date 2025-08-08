@@ -16,15 +16,18 @@ import type {
   DailyPeakResult,
   WeeklyPeakResult,
   DailyProfileResult,
-  CustomBrushHandleProps,
   LongTermResult,
   MultiFilterChartProps,
-} from "@/types/chartInterfaces";
-// (تمامی interface ها و کامپوننت CustomBrushHandle بدون تغییر باقی می‌مانند)
-// ... All interfaces and the CustomBrushHandle component remain unchanged ...
+  LoadContinuityValueItem,
+} from "@/types/filterInterfaces";
 
+interface CustomBrushHandleProps {
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+}
 
-//A data point in the chart
 interface ChartDataPoint {
   key: string;
   value: number;
@@ -98,109 +101,143 @@ const MultiFilterChart: React.FC<MultiFilterChartProps> = ({
   parallelMode = false,
   company = "",
 }) => {
-  const [loadContinuityLimit, setLoadContinuityLimit] = useState<string>("11");
+  const [loadContinuityLimit, setLoadContinuityLimit] = useState<string>("100");
 
   const chartData = useMemo(() => {
     const dataMap = new Map<string, Record<string, unknown>>();
+    
     filters.forEach((filter) => {
       const filterData = multiData[filter.id];
-      if (!filterData) return;
-      let extractedPoints: ChartDataPoint[] = [];
-      switch (chartType) {
-        // ... (سایر case ها بدون تغییر)
-        case "daily_peak": {
-          extractedPoints =
-            filterData.daily_peak?.result?.map(
-              (item: DailyPeakResult, index: number): ChartDataPoint => ({
-                key: parallelMode ? `روز ${index + 1}` : item.date,
-                value: item.amount || 0,
-              })
-            ) || [];
-          break;
-        }
-        case "weekly_peak": {
-          extractedPoints =
-            filterData.weekly_peak?.result?.map(
-              (item: WeeklyPeakResult, index: number): ChartDataPoint => ({
-                key: parallelMode
-                  ? `هفته ${index + 1}`
-                  : `هفته ${item.num_week}`,
-                value: item.max_week || 0,
-              })
-            ) || [];
-          break;
-        }
-        case "daily_profile_max": {
-          extractedPoints =
-            filterData.daily_profil_max?.result?.map(
-              (item: DailyProfileResult): ChartDataPoint => ({
-                key: item.hour?.replace("H", "") || "",
-                value: item.amount || 0,
-              })
-            ) || [];
-          break;
-        }
-        case "daily_profile_mean": {
-          extractedPoints =
-            filterData.daily_profil_mean?.result?.map(
-              (item: DailyProfileResult): ChartDataPoint => ({
-                key: item.hour?.replace("H", "") || "",
-                value: item.amount || 0,
-              })
-            ) || [];
-          break;
-        }
-        case "load_continuity": {
-          const lc = filterData.load_continuity || filterData.Load_continuity;
-          if (!lc || !lc.result || !Array.isArray(lc.result)) break;
-          let chartPoints: ChartDataPoint[] = [];
-          lc.result.forEach((resultItem) => {
-            if (resultItem.sort_value && Array.isArray(resultItem.sort_value)) {
-              const sortValues = resultItem.sort_value.map(
-                (valueItem, index): ChartDataPoint => {
-                  let finalValue = 0;
-                  if (typeof valueItem === "object" && valueItem !== null) {
-                    const objValue = valueItem as { value?: number };
-                    finalValue =
-                      objValue.value !== undefined ? Number(objValue.value) : 0;
-                  } else {
-                    finalValue = Number(valueItem);
-                  }
-                  return {
-                    key: parallelMode ? `${index + 1}` : `${index}`,
-                    value: !isNaN(finalValue) ? finalValue : 0,
-                  };
-                }
-              );
-              chartPoints = [...chartPoints, ...sortValues];
-            }
-          });
-          const validData = chartPoints.filter(
-            (item) => item.value != null && !isNaN(Number(item.value))
-          );
-
-          // ✨ اینجا از state برای محدود کردن تعداد نقاط استفاده می‌کنیم
-          // اگر ورودی کاربر معتبر نباشد (مثلا خالی باشد)، از 1001 به عنوان پیش‌فرض استفاده می‌شود
-          const limit = parseInt(loadContinuityLimit, 10) || 100;
-          extractedPoints = validData.slice(0, limit);
-
-          break;
-        }
-        case "long_term": {
-          const longTermData = filterData.long_term;
-          if (longTermData?.result && Array.isArray(longTermData.result)) {
-            extractedPoints = longTermData.result.map(
-              (item: LongTermResult, index: number): ChartDataPoint => ({
-                key: parallelMode ? `هفته ${index + 1}` : `هفته ${item.week}`,
-                value: item.amount || 0,
-              })
-            );
-          }
-          break;
-        }
-        default:
-          break;
+      if (!filterData) {
+        console.warn(`⚠️ No data found for filter: ${filter.name} (${filter.id})`);
+        return;
       }
+
+      let extractedPoints: ChartDataPoint[] = [];
+
+      try {
+        switch (chartType) {
+          case "daily_peak": {
+            const dailyPeakData = filterData.daily_peak;
+            if (dailyPeakData?.result && Array.isArray(dailyPeakData.result)) {
+              extractedPoints = dailyPeakData.result.map(
+                (item: DailyPeakResult, index: number): ChartDataPoint => ({
+                  key: parallelMode ? `روز ${index + 1}` : item.date,
+                  value: item.amount || 0,
+                })
+              );
+            }
+            break;
+          }
+
+          case "weekly_peak": {
+            const weeklyPeakData = filterData.weekly_peak;
+            if (weeklyPeakData?.result && Array.isArray(weeklyPeakData.result)) {
+              extractedPoints = weeklyPeakData.result.map(
+                (item: WeeklyPeakResult, index: number): ChartDataPoint => ({
+                  key: parallelMode
+                    ? `هفته ${index + 1}`
+                    : `هفته ${item.num_week}`,
+                  value: item.max_week || 0,
+                })
+              );
+            }
+            break;
+          }
+
+          case "daily_profile_max": {
+            const dailyProfileMaxData = filterData.daily_profil_max;
+            if (dailyProfileMaxData?.result && Array.isArray(dailyProfileMaxData.result)) {
+              extractedPoints = dailyProfileMaxData.result.map(
+                (item: DailyProfileResult): ChartDataPoint => ({
+                  key: item.hour?.replace("H", "") || "",
+                  value: item.amount || 0,
+                })
+              );
+            }
+            break;
+          }
+
+          case "daily_profile_mean": {
+            const dailyProfileMeanData = filterData.daily_profil_mean;
+            if (dailyProfileMeanData?.result && Array.isArray(dailyProfileMeanData.result)) {
+              extractedPoints = dailyProfileMeanData.result.map(
+                (item: DailyProfileResult): ChartDataPoint => ({
+                  key: item.hour?.replace("H", "") || "",
+                  value: item.amount || 0,
+                })
+              );
+            }
+            break;
+          }
+
+          case "load_continuity": {
+            // Handle both possible naming conventions
+            const loadContinuityData = filterData.load_continuity || filterData.Load_continuity;
+            
+            if (!loadContinuityData || !loadContinuityData.result || !Array.isArray(loadContinuityData.result)) {
+              console.warn(`⚠️ No load continuity data for filter: ${filter.name}`);
+              break;
+            }
+
+            let chartPoints: ChartDataPoint[] = [];
+            
+            loadContinuityData.result.forEach((resultItem) => {
+              if (resultItem.sort_value && Array.isArray(resultItem.sort_value)) {
+                const sortValues = resultItem.sort_value.map(
+                  (valueItem, index): ChartDataPoint => {
+                    let finalValue = 0;
+                    
+                    // Handle both object and number formats
+                    if (typeof valueItem === "object" && valueItem !== null) {
+                      const objValue = valueItem as LoadContinuityValueItem;
+                      finalValue = objValue.value !== undefined ? Number(objValue.value) : 0;
+                    } else {
+                      finalValue = Number(valueItem);
+                    }
+
+                    return {
+                      key: parallelMode ? `${index + 1}` : `${index}`,
+                      value: !isNaN(finalValue) ? finalValue : 0,
+                    };
+                  }
+                );
+                chartPoints = [...chartPoints, ...sortValues];
+              }
+            });
+
+            const validData = chartPoints.filter(
+              (item) => item.value != null && !isNaN(Number(item.value))
+            );
+
+            // Apply limit
+            const limit = parseInt(loadContinuityLimit, 10) || 100;
+            extractedPoints = validData.slice(0, limit);
+            break;
+          }
+
+          case "long_term": {
+            const longTermData = filterData.long_term;
+            if (longTermData?.result && Array.isArray(longTermData.result)) {
+              extractedPoints = longTermData.result.map(
+                (item: LongTermResult, index: number): ChartDataPoint => ({
+                  key: parallelMode ? `هفته ${index + 1}` : `هفته ${item.week}`,
+                  value: item.amount || 0,
+                })
+              );
+            }
+            break;
+          }
+
+          default:
+            console.warn(`⚠️ Unknown chart type: ${chartType}`);
+            break;
+        }
+      } catch (error) {
+        console.error(`❌ Error processing ${chartType} data for filter ${filter.name}:`, error);
+      }
+
+      // Add extracted points to the data map
       extractedPoints.forEach((point) => {
         if (!dataMap.has(point.key)) {
           dataMap.set(point.key, { key: point.key });
@@ -211,15 +248,18 @@ const MultiFilterChart: React.FC<MultiFilterChartProps> = ({
         }
       });
     });
-    return Array.from(dataMap.values());
-    // ✨ `loadContinuityLimit` به وابستگی‌های useMemo اضافه شد
+
+    const result = Array.from(dataMap.values());
+    console.log(`📊 Chart data for ${chartType}:`, result.length, 'points');
+    return result;
   }, [multiData, filters, chartType, parallelMode, loadContinuityLimit]);
 
   const yAxisRange = useMemo(() => {
-    // ... (بدون تغییر)
     if (chartData.length === 0) return { min: 0, max: 100 };
+
     let overallMin = Infinity;
     let overallMax = -Infinity;
+
     chartData.forEach((dataPoint) => {
       filters.forEach((filter) => {
         const value = dataPoint[filter.id] as number;
@@ -229,10 +269,13 @@ const MultiFilterChart: React.FC<MultiFilterChartProps> = ({
         }
       });
     });
+
     if (overallMin === Infinity) return { min: 0, max: 100 };
+
     const padding = (overallMax - overallMin) * 0.1;
     const finalMin = Math.floor(overallMin - padding);
     const finalMax = Math.ceil(overallMax + padding);
+
     return { min: Math.max(0, finalMin), max: finalMax > 0 ? finalMax : 100 };
   }, [chartData, filters]);
 
@@ -248,11 +291,9 @@ const MultiFilterChart: React.FC<MultiFilterChartProps> = ({
   useEffect(() => {
     setYDomain(["auto", "auto"]);
     setTempYDomain({ min: "", max: "" });
-    // ✨ ریست کردن محدودیت نقاط هنگام تغییر نوع نمودار یا فیلترها
     setLoadContinuityLimit("100");
   }, [chartType, filters]);
 
-  // ... (سایر توابع مثل handleYDomainChange و ... بدون تغییر)
   const handleYDomainChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setTempYDomain((prev) => ({ ...prev, [name]: value }));
@@ -261,6 +302,7 @@ const MultiFilterChart: React.FC<MultiFilterChartProps> = ({
   const handleApplyYDomain = () => {
     const newMin = tempYDomain.min === "" ? "auto" : Number(tempYDomain.min);
     const newMax = tempYDomain.max === "" ? "auto" : Number(tempYDomain.max);
+    
     if (
       typeof newMin === "number" &&
       typeof newMax === "number" &&
@@ -276,6 +318,7 @@ const MultiFilterChart: React.FC<MultiFilterChartProps> = ({
     setYDomain(["auto", "auto"]);
     setTempYDomain({ min: "", max: "" });
   };
+
   const handleExportExcel = () => {
     const ws = XLSX.utils.json_to_sheet(chartData);
     const wb = XLSX.utils.book_new();
@@ -287,6 +330,7 @@ const MultiFilterChart: React.FC<MultiFilterChartProps> = ({
     const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
     saveAs(blob, fileName);
   };
+
   const getXAxisLabel = (): string => {
     switch (chartType) {
       case "daily_peak":
@@ -297,20 +341,19 @@ const MultiFilterChart: React.FC<MultiFilterChartProps> = ({
       case "daily_profile_mean":
         return "ساعت";
       case "load_continuity":
-        return "ساعت";
+        return "نقطه داده";
       case "long_term":
         return "هفته";
       default:
         return "زمان";
     }
   };
+
   const getYAxisLabel = (): string => {
-    const unit =
-      company === "private" ? "kW" : company === "public" ? "MW" : "";
+    const unit = company === "private" ? "kW" : company === "public" ? "MW" : "MW";
     return `توان (${unit})`;
   };
 
-  // ... (حالت loading و empty بدون تغییر)
   if (loading) {
     return (
       <div className="flex flex-col justify-center items-center h-96 bg-gray-50 rounded-lg">
@@ -372,7 +415,7 @@ const MultiFilterChart: React.FC<MultiFilterChartProps> = ({
   const brushLine = filters.length > 0 ? filters[0].id : "";
 
   return (
-    <div className="w-full  bg-white p-6 sm:p-6 rounded-2xl shadow-lg border border-gray-200/80">
+    <div className="w-full bg-white p-6 sm:p-6 rounded-2xl shadow-lg border border-gray-200/80">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
           <h3 className="text-xl font-bold text-gray-900">{title}</h3>
@@ -557,7 +600,7 @@ const MultiFilterChart: React.FC<MultiFilterChartProps> = ({
               height={40}
               stroke="#e5e7eb"
               fill="#f9fafb"
-              y={330} // Adjusted y position
+              y={330}
               traveller={<CustomBrushHandle />}
             >
               <LineChart>
