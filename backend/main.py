@@ -272,9 +272,8 @@ def get_fidder_analysis():
             admin_response[company_name] = result
         return api_response(data=admin_response)
 
-    if fidder_codes[0] == "private_company_feeder":
+    if session.get('company') == "private":
         fidder_codes = [1]
-    if region_codes[0] == "private_company_region":
         region_codes = [1]
 
 
@@ -372,11 +371,8 @@ def get_energy_comparison():
 
         return api_response(data=datas)
 
-
-
-    if fidder_codes[0] == "private_company_feeder":
+    if session.get('company') == "private":
         fidder_codes = [1]
-    if region_codes[0] == "private_company_region":
         region_codes = [1]
 
 
@@ -417,9 +413,8 @@ def get_consumption_distribution():
     if not start_date or not end_date:
         return api_response(status="error", message="لطفاً بازه تاریخی را مشخص کنید", code=400)
 
-    if fidder_codes[0] == "private_company_feeder":
+    if session.get('company') == "private":
         fidder_codes = [1]
-    if region_codes[0] == "private_company_region":
         region_codes = [1]
 
 
@@ -474,10 +469,8 @@ def consumption_limitation():
         print(datas)
         return api_response(data=datas)
 
-
-    if fidder_codes[0] == "private_company_feeder":
+    if session.get('company') == "private":
         fidder_codes = [1]
-    if region_codes[0] == "private_company_region":
         region_codes = [1]
 
     try:
