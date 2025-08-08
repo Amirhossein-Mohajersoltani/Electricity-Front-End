@@ -72,7 +72,6 @@ export default function FeederAnalysis() {
 
           const response = await apiService.getPrivateCompanyAnalysis({
             company_names: companyNames,
-            // Use nullish coalescing for safety as date might be undefined
             start_date: filter.startDate ?? '',
             end_date: filter.endDate ?? ''
           });

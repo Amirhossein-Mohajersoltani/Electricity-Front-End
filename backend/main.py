@@ -258,10 +258,6 @@ def get_fidder_analysis():
 
 
 
-
-
-
-
     # For admin:
     if session.get("user_email") == "sadjad.admin@gmail.com":
         company_names = data.get("company_names")
@@ -280,6 +276,7 @@ def get_fidder_analysis():
         fidder_codes = [1]
     if region_codes[0] == "private_company_region":
         region_codes = [1]
+
 
     if not start_date or not end_date:
         return api_response(status="error", message="لطفاً بازه تاریخی را مشخص کنید", code=400)
