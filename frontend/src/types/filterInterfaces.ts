@@ -12,17 +12,14 @@ export interface DynamicFilterData {
   name: string;
   color: string;
   
-  // Date and period fields
   startDate: string;
   endDate: string;
   period?: 'weekly' | 'monthly' | 'yearly' | 'custom';
   costume_period?: string;
 
-  // Fields for public companies (regions and feeders)
   regions: (string | number)[];
   feeders: string[];
 
-  // Field for private companies
   companyNames: string[];
 }
 

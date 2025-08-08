@@ -7,265 +7,353 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  ResponsiveContainer,
-  Brush,
+  ResponsiveContainer
 } from 'recharts';
-import { useAuth } from '../../context/AuthContext';
-import type {
-  ResultItem,
-  ApiData,
-  FilterData,
-  MultiFilterEnergyChartProps,
-  
-} from "@/types/chartInterfaces";
-// ... (Constants and Interfaces remain unchanged) ...
-const DATA_KEYS = {
-  ENERGETIC: 'energetic',
-  FIDDER_CODE: 'fidder code',
-  KEY_PREFIX: 'فیدر',
-} as const;
+import type { 
+  FilterData, 
+  EnergyComparisonData, 
+  EnergyComparisonResultItem 
+} from '../../types/api.interfaces';
 
-const MESSAGES = {
-  LOADING: 'در حال بارگذاری داده‌ها...',
-  NO_DATA: 'داده‌ای برای نمایش موجود نیست',
-  TOTAL_ENERGY: 'مجموع کل توان',
-} as const;
+// ===========================================
+// INTERFACES (بدون تغییر)
+// ===========================================
 
+interface MultiFilterEnergyData {
+  [filterId: string]: EnergyComparisonData;
+}
 
+interface ProcessedChartData {
+  period_label: string;
+  period_start: string;
+  [companyKey: string]: number | string;
+}
 
+interface CompanyInfo {
+  key: string;
+  name: string;
+  color: string;
+  filterId: string;
+  filterName: string;
+}
 
-// ✅ 1. فیلتر مقادیر صفر از این تابع حذف شد
-const processChartData = (multiData: Record<string, ApiData>, filters: FilterData[]) => {
-  const dataMap = new Map<string, Record<string, any>>();
+interface MultiFilterEnergyChartProps {
+  multiData: MultiFilterEnergyData;
+  filters: FilterData[];
+  loading: boolean;
+  title: string;
+}
 
-  filters.forEach((filter) => {
-    const result = multiData[filter.id]?.data?.energy_comparison?.result;
-    if (!result) return;
+// ===========================================
+// HELPER FUNCTIONS (بدون تغییر)
+// ===========================================
 
-    // The .filter() call that removed zero values is now gone.
-    const chartData = result.map((item: ResultItem) => ({
-      key: `${DATA_KEYS.KEY_PREFIX} ${item[DATA_KEYS.FIDDER_CODE]} - دوره ${item.period_num}`,
-      feederCode: item[DATA_KEYS.FIDDER_CODE],
-      periodNum: item.period_num,
-      periodStart: item.period_start,
-      periodEnd: item.period_end,
-      value: item[DATA_KEYS.ENERGETIC],
-    }));
-
-    chartData.forEach((item) => {
-      const key = item.key;
-      if (!dataMap.has(key)) {
-        dataMap.set(key, {
-          key,
-          feederCode: item.feederCode,
-          periodNum: item.periodNum,
-          periodStart: item.periodStart,
-          periodEnd: item.periodEnd,
-        });
-      }
-      dataMap.get(key)![filter.id] = item.value;
-    });
-  });
-
-  return Array.from(dataMap.values()).sort((a, b) => {
-    if (a.feederCode !== b.feederCode) {
-      return a.feederCode - b.feederCode;
+const generateColors = (count: number): string[] => {
+  const colors = [
+    '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6',
+    '#EC4899', '#06B6D4', '#84CC16', '#F97316', '#6366F1',
+    '#14B8A6', '#F43F5E', '#8B5A2B', '#0EA5E9', '#A855F7',
+    '#22C55E', '#EAB308', '#DC2626', '#059669', '#7C3AED'
+  ];
+  if (count > colors.length) {
+    for (let i = colors.length; i < count; i++) {
+      colors.push(`hsl(${(i * 137.508) % 360}, 70%, 50%)`);
     }
-    return a.periodNum - b.periodNum;
-  });
+  }
+  return colors;
 };
 
-const LoadingState: React.FC = () => (
- <div className="flex h-64 items-center justify-center">
-  <div className="text-center">
-  <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600" />
-  <p className="mt-4 text-gray-600">{MESSAGES.LOADING}</p>
-  </div>
- </div>
-);
+const formatEnergyValue = (value: number): string => {
+  if (value >= 1_000_000) {
+    return `${(value / 1_000_000).toFixed(1)}M`;
+  }
+  if (value >= 1_000) {
+    return `${(value / 1_000).toFixed(1)}K`;
+  }
+  return value.toFixed(0);
+};
 
-const EmptyState: React.FC = () => (
- <div className="flex h-64 items-center justify-center">
-  <p className="text-gray-500">{MESSAGES.NO_DATA}</p>
- </div>
-);
+const createPeriodLabel = (item: EnergyComparisonResultItem): string => {
+  if (item.period_start && item.period_end) {
+    const startParts = item.period_start.split('-');
+    const endParts = item.period_end.split('-');
+    if (startParts.length >= 2 && endParts.length >= 2) {
+      const startMonth = startParts[1];
+      const startDay = startParts[2] || '01';
+      const endMonth = endParts[1];
+      const endDay = endParts[2] || '01';
+      return `${startParts[0]}/${startMonth}/${startDay} - ${endParts[0]}/${endMonth}/${endDay}`;
+    }
+    return `${item.period_start} - ${item.period_end}`;
+  }
+  if (item.period_num) {
+    return `دوره ${item.period_num}`;
+  }
+  return 'دوره نامشخص';
+};
 
+const convertPersianDateForSort = (persianDate: string): number => {
+  if (!persianDate) return 0;
+  const parts = persianDate.split('-');
+  if (parts.length >= 3) {
+    return parseInt(parts[0]) * 10000 + parseInt(parts[1]) * 100 + parseInt(parts[2]);
+  }
+  return 0;
+};
 
-const MultiFilterEnergyChart: React.FC<MultiFilterEnergyChartProps> = ({
-  multiData,
+// ===========================================
+// MAIN COMPONENT (بخش رندر به‌روزرسانی شده)
+// ===========================================
+
+const MultiFilterEnergyChart: React.FC<MultiFilterEnergyChartProps> = ({ 
+  multiData, 
   filters,
-  loading = false,
-  title = 'مقایسه انرژی چندگانه',
+  loading,
+  title
 }) => {
-  const { companyType } = useAuth();
-  const energyUnit = companyType === 'private' ? 'KW' : 'MW';
 
-  const chartData = useMemo(() => processChartData(multiData, filters), [multiData, filters]);
+  const { processedData, companies } = useMemo(() => {
+    if (!filters || filters.length === 0 || !multiData) {
+      return { processedData: [], companies: [] };
+    }
 
-  if (loading) return <LoadingState />;
-  if (chartData.length === 0) return <EmptyState />;
+    const periodMap = new Map<string, { 
+      period_label: string, 
+      period_start: string,
+      period_end: string,
+      companies: Map<string, number>
+    }>();
+    
+    const companyInfoList: CompanyInfo[] = [];
+    let colorIndex = 0;
+    const colors = generateColors(50);
 
-  return (
-    <div className="w-full space-y-6">
-      {/* Chart Header */}
-      <div>
-        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-        {/* ✅ 2. عبارت "فقط مقادیر غیر صفر" از اینجا حذف شد */}
-        <p className="text-sm text-gray-600">
-          مقایسه انرژی {filters.length} فیلتر مختلف
-        </p>
-      </div>
+    filters.forEach(filter => {
+      const filterData = multiData[filter.id];
+      if (filterData) {
+        Object.entries(filterData).forEach(([companyName, companyData]) => {
+          if (companyData && companyData.result && Array.isArray(companyData.result) && companyData.result.length > 0) {
+            const companyKey = `${filter.id}_${companyName}`;
+            
+            if (!companyInfoList.find(c => c.key === companyKey)) {
+              companyInfoList.push({
+                key: companyKey,
+                name: companyName,
+                color: colors[colorIndex % colors.length],
+                filterId: filter.id,
+                filterName: filter.name
+              });
+              colorIndex++;
+            }
 
-      {/* Chart */}
-      <div className="h-96">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={chartData}
-            margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis
-              dataKey="key"
-              tick={{ fontSize: 10 }}
-              angle={-45}
-              textAnchor="end"
-              height={100}
-            />
-            <YAxis
-              tick={{ fontSize: 12 }}
-              label={{
-                value: `انرژی (${energyUnit})`,
-                angle: -90,
-                position: 'insideLeft',
-              }}
-            />
-            <Brush dataKey="key" height={30} stroke="#8884d8" />
-            <Tooltip
-              formatter={(value: number, name: string) => {
-                const filter = filters.find((f) => f.id === name);
-                return [
-                  `${value.toLocaleString()} ${energyUnit}`,
-                  filter?.name || name,
-                ];
-              }}
-              labelFormatter={(label) => `${label}`}
-              contentStyle={{
-                backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                border: '1px solid #ccc',
-                borderRadius: '4px',
-              }}
-            />
-            <Legend
-              formatter={(value: string) => {
-                const filter = filters.find((f) => f.id === value);
-                return filter?.name || value;
-              }}
-            />
-            {filters.map((filter) => (
-              <Bar
-                key={filter.id}
-                dataKey={filter.id}
-                fill={filter.color}
-                radius={[4, 4, 0, 0]}
-              />
-            ))}
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+            companyData.result.forEach(resultItem => {
+              const periodLabel = createPeriodLabel(resultItem);
+              const periodStart = resultItem.period_start || '';
+              const periodEnd = resultItem.period_end || '';
+              const periodKey = `${periodStart}_${periodEnd}_${periodLabel}`;
+              
+              if (!periodMap.has(periodKey)) {
+                periodMap.set(periodKey, {
+                  period_label: periodLabel,
+                  period_start: periodStart,
+                  period_end: periodEnd,
+                  companies: new Map()
+                });
+              }
+              
+              const period = periodMap.get(periodKey)!;
+              period.companies.set(companyKey, resultItem.energetic || 0);
+            });
+          }
+        });
+      }
+    });
 
-      {/* Summary Statistics (Unchanged) */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {filters.map((filter) => {
-          const result = multiData[filter.id]?.data?.energy_comparison?.result;
-          if (!result) return null;
+    const chartData: ProcessedChartData[] = Array.from(periodMap.values())
+      .sort((a, b) => {
+        const dateA = convertPersianDateForSort(a.period_start);
+        const dateB = convertPersianDateForSort(b.period_start);
+        return dateA - dateB;
+      })
+      .map(period => {
+        const dataPoint: ProcessedChartData = {
+          period_label: period.period_label,
+          period_start: period.period_start
+        };
+        
+        companyInfoList.forEach(company => {
+          dataPoint[company.key] = period.companies.get(company.key) || 0;
+        });
+        
+        return dataPoint;
+      });
+    
+    return { processedData: chartData, companies: companyInfoList };
+  }, [multiData, filters]);
 
-          const totalEnergy = result.reduce(
-            (sum: number, item: ResultItem) => sum + (item[DATA_KEYS.ENERGETIC] || 0),
-            0,
-          );
-
-          const nonZeroCount = result.filter(
-            (item: ResultItem) => item[DATA_KEYS.ENERGETIC] > 0
-          ).length;
-
-          return (
-            <div
-              key={filter.id}
-              className="rounded-lg border bg-gray-50 p-4"
-            >
-              <div className="mb-2 flex items-center gap-2">
-                <div
-                  className="h-3 w-3 rounded-full"
-                  style={{ backgroundColor: filter.color }}
-                />
-                <span className="text-sm font-semibold text-gray-800">
-                  {filter.name}
-                </span>
-              </div>
-              <p className="text-xl font-bold text-gray-900">
-                {totalEnergy.toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}{' '}
-                {energyUnit}
-              </p>
-              <p className="text-xs text-gray-500">{MESSAGES.TOTAL_ENERGY}</p>
-               <p className="text-xs text-gray-400 mt-1">
-                {nonZeroCount} مورد با مقدار غیر صفر
-               </p>
-            </div>
-          );
-        })}
-      </div>
-
-       {/* Data Details (Unchanged) */}
-       <div className="mt-6 rounded-lg bg-gray-50 p-4">
-        <h4 className="text-sm font-semibold text-gray-800 mb-3">جزئیات داده‌ها:</h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-xs text-gray-600">
-          {chartData.map((item, index) => (
-            <div key={index} className="bg-white p-3 rounded-lg border shadow-sm">
-              <div className="mb-2 border-b pb-2">
-                <div className="font-bold text-gray-700">دوره {item.periodNum}</div>
-              </div>
-              <div className="mb-2 space-y-1">
-                <div className="flex justify-between">
-                  <span className="text-gray-500">تاریخ شروع:</span>
-                  <span className="font-medium">{item.periodStart}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">تاریخ پایان:</span>
-                  <span className="font-medium">{item.periodEnd}</span>
-                </div>
-              </div>
-              <div className="space-y-1">
-                {filters.map((filter) => {
-                  const value = item[filter.id];
-                  // Show the value even if it is 0
-                  if (typeof value === 'number') {
-                    return (
-                      <div key={filter.id} className="flex justify-between items-center">
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="h-2 w-2 rounded-full"
-                            style={{ backgroundColor: filter.color }}
-                          />
-                          <span>{filter.name}:</span>
-                        </div>
-                        <span className="font-bold" style={{ color: filter.color }}>
-                          {value.toLocaleString()} {energyUnit}
-                        </span>
-                      </div>
-                    );
-                  }
-                  return null;
-                })}
-              </div>
-            </div>
-          ))}
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full text-gray-500">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2">در حال بارگذاری نمودار...</p>
         </div>
       </div>
+    );
+  }
+
+  if (!processedData || processedData.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full text-gray-500">
+        <div className="text-center">
+          <p className="text-lg">داده‌ای برای نمایش در نمودار وجود ندارد.</p>
+          <p className="text-sm mt-2">لطفاً فیلترهای مناسب انتخاب کنید.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full h-full">
+      {title && (
+        <div className="mb-4 text-center">
+          <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+        </div>
+      )}
+      
+      {/* Chart Section */}
+      <ResponsiveContainer width="100%" height={450}>
+        <BarChart
+          data={processedData}
+          margin={{ top: 20, right: 30, left: 40, bottom: 120 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+          <XAxis 
+            dataKey="period_label" 
+            tick={{ fill: '#6B7280', fontSize: 10 }} 
+            axisLine={{ stroke: '#E5E7EB' }}
+            tickLine={{ stroke: '#E5E7EB' }}
+            angle={-45}
+            textAnchor="end"
+            height={100}
+            interval={0}
+          />
+          <YAxis
+            tickFormatter={formatEnergyValue}
+            tick={{ fill: '#6B7280', fontSize: 12 }}
+            axisLine={false}
+            tickLine={false}
+            label={{ 
+              value: 'مصرف انرژی', 
+              angle: -90, 
+              position: 'insideLeft',
+              style: { textAnchor: 'middle', fill: '#6B7280' },
+              offset: -25
+            }}
+          />
+          <Tooltip
+            content={({ active, payload, label }) => {
+              if (!active || !payload || payload.length === 0) return null;
+              
+              const periodStart = payload[0]?.payload?.period_start;
+              const validPayload = payload.filter(p => p.value && p.value > 0);
+              
+              if (validPayload.length === 0) return null;
+              
+              return (
+                <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-lg text-xs" style={{ direction: 'rtl', minWidth: '250px' }}>
+                  <p className="font-bold text-sm text-gray-800 mb-2">دوره: {label}</p>
+                  {periodStart && <p className="text-gray-500 text-xs mb-2">تاریخ شروع: {periodStart}</p>}
+                  <div className="border-t border-gray-200 pt-2">
+                    {validPayload.map((entry, index) => {
+                      const company = companies.find(c => c.key === entry.dataKey);
+                      return (
+                        <div key={index} className="flex items-center justify-between my-1">
+                          <div className="flex items-center gap-2">
+                            <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: entry.color }}></span>
+                            <span className="text-gray-700">{company ? `${company.name} (${company.filterName})` : entry.dataKey}</span>
+                          </div>
+                          <span className="font-semibold text-gray-800">{formatEnergyValue(entry.value as number)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            }}
+          />
+          <Legend
+            verticalAlign="top"
+            align="center"
+            wrapperStyle={{ paddingBottom: '20px', direction: 'rtl', maxHeight: '100px', overflowY: 'auto' }}
+            formatter={(value) => {
+              const company = companies.find(c => c.key === value);
+              return company ? <span title={`${company.name} (${company.filterName})`}>{`${company.name} (${company.filterName})`}</span> : value;
+            }}
+          />
+          {companies.map((company) => (
+            <Bar
+              key={company.key}
+              dataKey={company.key}
+              name={company.key}
+              fill={company.color}
+              radius={[2, 2, 0, 0]}
+              maxBarSize={40}
+            />
+          ))}
+        </BarChart>
+      </ResponsiveContainer>
+      
+      {/* Summary Info */}
+      <div className="mt-4 text-center text-sm text-gray-600">
+        <p>مقایسه {companies.length} شرکت • {processedData.length} دوره زمانی • {filters.length} فیلتر</p>
+      </div>
+      
+      {/* 📊 Data Table Section - START */}
+      <div className="mt-8">
+        <h4 className="text-md font-semibold text-gray-800 text-center mb-4">
+          خلاصه داده‌ها به تفکیک دوره
+        </h4>
+        <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+          <table className="min-w-full divide-y divide-gray-200 text-sm">
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="whitespace-nowrap px-4 py-3 font-semibold text-right text-gray-700">
+                  دوره
+                </th>
+                {companies.map((company) => (
+                  <th key={company.key} className="whitespace-nowrap px-4 py-3 font-semibold text-center text-gray-700">
+                    <div className="flex items-center justify-center gap-2">
+                       <span 
+                         className="w-3 h-3 rounded-sm"
+                         style={{ backgroundColor: company.color }}
+                       />
+                       <span>{company.name} ({company.filterName})</span>
+                    </div>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 bg-white">
+              {processedData.map((dataPoint, index) => (
+                <tr key={index} className="hover:bg-gray-50">
+                  <td className="whitespace-nowrap px-4 py-3 font-medium text-gray-800">
+                    {dataPoint.period_label}
+                  </td>
+                  {companies.map((company) => (
+                    <td key={company.key} className="whitespace-nowrap px-4 py-3 text-gray-600 text-center">
+                      {formatEnergyValue(dataPoint[company.key] as number) || '۰'}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {/* Data Table Section - END */}
     </div>
   );
 };
 
-export default React.memo(MultiFilterEnergyChart);
+export default MultiFilterEnergyChart;

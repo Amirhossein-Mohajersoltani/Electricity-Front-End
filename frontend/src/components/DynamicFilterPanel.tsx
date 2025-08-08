@@ -66,9 +66,9 @@ const DynamicFilterPanel: React.FC<DynamicFilterPanelProps> = ({
   const [error, setError] = useState('');
   const [isCustomInputVisible, setIsCustomInputVisible] = useState(false);
   
-  // ✅ CHANGED: This is the only line you need to change.
-  // Now only 'public' users will see location filters. 'admin' and 'private' will see company names.
-  const shouldShowLocationFilters = companyType === 'public';
+  // ✅ FIXED: Correct logic for showing filters
+  const showLocationFilters = companyType === 'public'; // Public companies need region/feeder selection
+  const showCompanyFilters = companyType === 'admin';   // Admin can select specific companies
 
   const [currentFilter, setCurrentFilter] = useState<Partial<FilterData>>({
     name: '',
@@ -83,14 +83,13 @@ const DynamicFilterPanel: React.FC<DynamicFilterPanelProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      if (shouldShowLocationFilters) {
+      if (showLocationFilters) {
         loadPublicCompanyData();
-      } else {
-        // This will now correctly run for both 'admin' and 'private' users
+      } else if (showCompanyFilters) {
         loadPrivateCompanyData();
       }
     }
-  }, [companyType, isOpen, shouldShowLocationFilters]);
+  }, [companyType, isOpen, showLocationFilters, showCompanyFilters]);
 
   useEffect(() => {
     localStorage.setItem('dynamicFilters', JSON.stringify(filters));
@@ -121,7 +120,6 @@ const DynamicFilterPanel: React.FC<DynamicFilterPanelProps> = ({
       const response = await api.getPrivateCompanies();
       if (response.status === 'success' && response.data?.company_names) {
         setAvailablePrivateCompanies(response.data.company_names);
-        console.log('✅ Private companies loaded:', response.data.company_names);
       } else {
         console.warn('⚠️ No company names in response:', response);
         setAvailablePrivateCompanies([]);
@@ -129,7 +127,6 @@ const DynamicFilterPanel: React.FC<DynamicFilterPanelProps> = ({
     } catch (err) {
       console.error('❌ Error loading private companies:', err);
       setError('خطا در بارگذاری لیست شرکت‌ها. از حالت پیش‌فرض استفاده می‌شود.');
-      // Set fallback companies based on the sample data
       setAvailablePrivateCompanies(['بازار بزرگ اطلس', 'بناگست']);
     } finally {
       setLoadingPrivateCompanies(false);
@@ -178,16 +175,16 @@ const DynamicFilterPanel: React.FC<DynamicFilterPanelProps> = ({
   };
 
   const handleDateChange = (key: 'startDate' | 'endDate', value: string) => {
+    // Note: As per original logic, selecting a manual date clears the preset period.
     setCurrentFilter(prev => ({ ...prev, [key]: value, period: undefined, costume_period: undefined }));
   };
-
+  
+  // ✅ CHANGED: This function no longer clears startDate and endDate.
   const handlePresetRangeClick = (range: 'weekly' | 'monthly' | 'yearly' | 'custom') => {
     setIsCustomInputVisible(range === 'custom');
     setCurrentFilter(prev => ({
       ...prev,
       period: range,
-      startDate: '',
-      endDate: '',
       costume_period: range !== 'custom' ? undefined : prev.costume_period,
     }));
   };
@@ -209,12 +206,15 @@ const DynamicFilterPanel: React.FC<DynamicFilterPanelProps> = ({
       return;
     }
     
+    // The validation allows either manual dates OR a preset range (or both).
     if (!hasManualDates && !hasPresetRange) {
       setError('لطفاً یک بازه زمانی معتبر (تاریخ شروع و پایان یا یک بازه پیش‌فرض) انتخاب کنید.');
       return;
     }
 
-    if (shouldShowLocationFilters) {
+    // ✅ FIXED: Validation logic based on company type
+    if (showLocationFilters) {
+      // Public companies need regions and feeders
       if (!currentFilter.regions || currentFilter.regions.length === 0) {
         setError('لطفاً حداقل یک منطقه انتخاب کنید.');
         return;
@@ -223,25 +223,31 @@ const DynamicFilterPanel: React.FC<DynamicFilterPanelProps> = ({
         setError('لطفاً حداقل یک فیدر انتخاب کنید.');
         return;
       }
-    } else {
+    } else if (showCompanyFilters) {
+      // Admin needs specific companies
       if (!currentFilter.companyNames || currentFilter.companyNames.length === 0) {
         setError('لطفاً حداقل یک شرکت را انتخاب کنید.');
         return;
       }
     }
+    // Private companies don't need additional validation - server handles it automatically
 
     const newFilter: FilterData = {
       id: Date.now().toString(),
       name: currentFilter.name!,
       color: FILTER_COLORS[filters.length % FILTER_COLORS.length],
       
-      ...(shouldShowLocationFilters ? {
+      // ✅ FIXED: Include location data only for public companies
+      ...(showLocationFilters && {
         regions: currentFilter.regions || [],
         feeders: currentFilter.feeders || [],
-      } : {
+      }),
+      // ✅ FIXED: Include company selection only for admin
+      ...(showCompanyFilters && {
         companyNames: currentFilter.companyNames || [],
       }),
       
+      // Date/period data for all company types
       ...(currentFilter.startDate && { startDate: currentFilter.startDate }),
       ...(currentFilter.endDate && { endDate: currentFilter.endDate }),
       ...(currentFilter.period && { period: currentFilter.period }),
@@ -273,6 +279,7 @@ const DynamicFilterPanel: React.FC<DynamicFilterPanelProps> = ({
       setError('برای اعمال، ابتدا حداقل یک فیلتر اضافه کنید.');
       return;
     }
+    console.log('Final filters to be sent:', filters);
     onApplyFilters(filters);
     onClose();
   };
@@ -282,6 +289,16 @@ const DynamicFilterPanel: React.FC<DynamicFilterPanelProps> = ({
       <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
     </div>
   );
+
+  // ✅ ADDED: Helper function to get company type display name
+  const getCompanyTypeDisplayName = () => {
+    switch (companyType) {
+      case 'admin': return 'مدیر سیستم';
+      case 'public': return 'شرکت دولتی';
+      case 'private': return 'شرکت خصوصی';
+      default: return 'نامشخص';
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -293,7 +310,13 @@ const DynamicFilterPanel: React.FC<DynamicFilterPanelProps> = ({
             <Filter className="h-6 w-6 text-primary" />
             <div>
               <CardTitle>{title}</CardTitle>
-              <CardDescription>فیلترهای مورد نظر خود را بسازید و برای مقایسه اضافه کنید.</CardDescription>
+              <CardDescription>
+                فیلترهای مورد نظر خود را بسازید و برای مقایسه اضافه کنید.
+                {/* ✅ ADDED: Show current company type */}
+                <span className="text-xs text-blue-600 mr-2">
+                  (حالت: {getCompanyTypeDisplayName()})
+                </span>
+              </CardDescription>
             </div>
           </div>
           <Button variant="ghost" size="icon" onClick={onClose}>
@@ -332,10 +355,17 @@ const DynamicFilterPanel: React.FC<DynamicFilterPanelProps> = ({
                               <Calendar className="h-3.5 w-3.5" />
                               {getRangeDisplayText(filter)}
                             </p>
+                            {/* ✅ IMPROVED: Better display of filter details */}
                             {filter.regions && filter.feeders && (
                               <>
-                                <p className="text-xs text-gray-500 mt-1"><span className="font-medium">{filter.regions.length}</span> منطقه</p>
-                                <p className="text-xs text-gray-500 mt-1"><span className="font-medium">{filter.feeders.length}</span> فیدر</p>
+                                <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                                  <MapPin className="h-3.5 w-3.5" />
+                                  <span className="font-medium">{filter.regions.length}</span> منطقه
+                                </p>
+                                <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                                  <Zap className="h-3.5 w-3.5" />
+                                  <span className="font-medium">{filter.feeders.length}</span> فیدر
+                                </p>
                               </>
                             )}
                             {filter.companyNames && (
@@ -343,6 +373,13 @@ const DynamicFilterPanel: React.FC<DynamicFilterPanelProps> = ({
                                   <Building className="h-3.5 w-3.5" />
                                   <span className="font-medium">{filter.companyNames.length}</span> شرکت
                                </p>
+                            )}
+                            {/* ✅ ADDED: Show when it's for private company (no specific selections needed) */}
+                            {companyType === 'private' && !filter.regions && !filter.companyNames && (
+                              <p className="text-xs text-blue-500 mt-1 flex items-center gap-1">
+                                <Building className="h-3.5 w-3.5" />
+                                شرکت خصوصی (خودکار)
+                              </p>
                             )}
                           </div>
                         </div>
@@ -399,7 +436,8 @@ const DynamicFilterPanel: React.FC<DynamicFilterPanelProps> = ({
                     </div>
                   </div>
 
-                  {shouldShowLocationFilters ? (
+                  {/* ✅ FIXED: Show location filters only for public companies */}
+                  {showLocationFilters && (
                     <>
                       <Separator />
                       <div>
@@ -415,7 +453,10 @@ const DynamicFilterPanel: React.FC<DynamicFilterPanelProps> = ({
                         )}
                       </div>
                     </>
-                  ) : (
+                  )}
+                  
+                  {/* ✅ FIXED: Show company filters only for admin */}
+                  {showCompanyFilters && (
                     <>
                       <Separator />
                       <div>
@@ -435,6 +476,19 @@ const DynamicFilterPanel: React.FC<DynamicFilterPanelProps> = ({
                             از داده‌های نمونه استفاده می‌شود
                           </p>
                         )}
+                      </div>
+                    </>
+                  )}
+
+                  {/* ✅ ADDED: Info message for private companies */}
+                  {companyType === 'private' && (
+                    <>
+                      <Separator />
+                      <div className="bg-blue-50 p-3 rounded-md">
+                        <p className="text-sm text-blue-700 flex items-center gap-2">
+                          <Building className="h-4 w-4" />
+                          در حالت شرکت خصوصی، سرور به طور خودکار داده‌های شرکت شما را در نظر می‌گیرد.
+                        </p>
                       </div>
                     </>
                   )}
