@@ -339,11 +339,11 @@ def get_energy_comparison():
     company_id = [session.get("company_id")]
     period = data.get("period", "year")
     costume_period = None
-    if period == "weekly":
+    if period == "weekly" or period == "week":
         period = "week"
-    elif period == "monthly":
+    elif period == "monthly" or period == "month":
         period = "month"
-    elif period == "yearly":
+    elif period == "yearly" or period == "year":
         period = "year"
     else:
         period = 'custom'
