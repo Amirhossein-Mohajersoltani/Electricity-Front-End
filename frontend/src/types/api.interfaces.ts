@@ -96,7 +96,7 @@ export interface FilterData {
   startDate?: string;
   endDate?: string;
   period?: 'weekly' | 'monthly' | 'yearly' | 'custom';
-  costume_period?: string;
+  costume_period?: string ;
 
   // Fields for public companies
   regions?: (string | number)[];
@@ -152,8 +152,9 @@ export interface EnergyComparisonRequest {
   start_date?: string;
   end_date?: string;
   period?: string;
-  costume_period?: string | null;
+  costume_period?: string ;
   years?: string[];
+  company_names?:string[]
 }
 
 /**
@@ -230,6 +231,67 @@ export interface DailyPeakResponse {
 /**
  * Weekly peak analysis response
  */
+
+
+
+
+export interface EnergyComparisonResultItem {
+  energetic: number;
+  "fidder code": number;
+  period_end: string;
+  period_num: number;
+  period_start: string;
+}
+
+/**
+ * Company-specific data in the response
+ */
+export interface CompanyEnergyData {
+  company_id: number[];
+  costume_period: string ;
+  fidder_code: string | null;
+  period: string;
+  region_code: number[];
+  result: EnergyComparisonResultItem[];
+  status: string;
+}
+
+/**
+ * The main data structure containing all companies
+ */
+export interface EnergyComparisonData {
+  [companyName: string]: CompanyEnergyData;
+}
+
+export interface FlexibleApiResponse extends ApiResponse<EnergyComparisonResponseData> {
+  data?: EnergyComparisonResponseData;
+}
+
+export interface EnergyComparisonResponseDataItem {
+  "fidder code"?: number;
+  period_num?: number;
+  period_start?: string;
+  period_end?: string;
+  energetic?: number;
+  section?: string;
+  consumption?: number;
+  year?: number;
+  num_fidder?: string;
+  amount?: number;
+}
+
+export type EnergyComparisonResponseData = EnergyComparisonData | LegacyEnergyComparisonResponse;
+
+
+export interface LegacyEnergyComparisonResponse {
+  energy_comparison: EnergyComparisonResponseDataItem[];
+}
+
+export interface EnergyComparisonApiResponse {
+  data: EnergyComparisonData;
+  message: string;
+  status: string;
+}
 export interface WeeklyPeakResponse {
   weeks: string[];
   peak_values: number[];
@@ -495,8 +557,9 @@ export interface DateRange {
  * Shamsi (Persian) date utilities
  */
 export interface ShamsiDate {
-  year: number;
-  month: number;
+  yearly: number;
+  weekly:number
+  monthly: number;
   day: number;
   formatted: string;
 }
