@@ -167,7 +167,6 @@ const MultiFilterChart: React.FC<MultiFilterChartProps> = ({
             }
             break;
           }
-
           case "daily_profile_mean": {
             const dailyProfileMeanData = filterData.daily_profile_mean;
             if (dailyProfileMeanData?.result && Array.isArray(dailyProfileMeanData.result)) {

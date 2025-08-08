@@ -7,12 +7,25 @@ import { useAuth } from "../context/AuthContext";
 import type { DynamicFilterData, FilterDataStructure, MultiFilterAnalysisData } from '../types/filterInterfaces';
 
 // ✅ FIX: Standardized chart types to use 'profil'
-type ChartType = 'daily_peak' | 'weekly_peak' | 'daily_profil_max' | 'daily_profil_mean' | 'load_continuity' | 'long_term';
+type ChartType = 'daily_peak' | 'weekly_peak' | 'daily_profile_max' | 'daily_profile_mean' | 'load_continuity' | 'long_term';
 
 interface ExtendedAuthContext {
   companyType: string;
   company?: string;
 }
+
+function normalizeKeys<T extends Record<string, any>>(obj: T): T {
+  const normalized: Record<string, any> = {};
+
+  Object.keys(obj).forEach((key) => {
+    let newKey = key.toLowerCase();
+    newKey = newKey.replace("profil_", "profile_"); // اصلاح املای ناقص
+    normalized[newKey] = obj[key];
+  });
+
+  return normalized as T;
+}
+
 
 export default function FeederAnalysis() {
   const [loading, setLoading] = useState(false);
@@ -100,7 +113,9 @@ export default function FeederAnalysis() {
               setError(`خطا در بارگذاری داده‌های شرکت ${filter.name}: ${response.message || 'نامشخص'}`);
             }
 
-          } else {
+          }
+        }
+        if (companyType !== 'admin') {
             let feedersToSend: string[] = [];
             let regionsToSend: string[] = [];
 
@@ -129,7 +144,9 @@ export default function FeederAnalysis() {
               console.log('✅ Public company API response:', response.data);
               try {
                 const transformedData: FilterDataStructure = response.data as unknown as FilterDataStructure;
-                newMultiFilterData[filter.id] = transformedData;
+                const normalizedData = normalizeKeys(transformedData);
+                newMultiFilterData[filter.id] = normalizedData;
+
               } catch (error) {
                 console.error('Error transforming data for filter:', filter.id, error);
                 newMultiFilterData[filter.id] = {
@@ -146,13 +163,13 @@ export default function FeederAnalysis() {
               console.error('❌ Public company API call failed:', response);
               setError(`خطا در بارگذاری داده‌های فیلتر ${filter.name}: ${response.message || 'نامشخص'}`);
             }
-          }
         }
+      }
 
         console.log('📊 Final multi-filter data:', newMultiFilterData);
         setMultiFilterData(newMultiFilterData);
 
-      }
+
     }catch (error) {
       console.error('❌ Multi-filter API call failed:', error);
       setError('خطا در بارگذاری داده‌های چندگانه: ' + (error instanceof Error ? error.message : 'نامشخص'));
