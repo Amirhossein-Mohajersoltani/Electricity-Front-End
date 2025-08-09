@@ -77,6 +77,66 @@ export interface DailyProfileData extends BaseResult {
   method?: 'max' | 'mean';
 }
 
+
+// src/types/filterInterfaces.ts
+
+/**
+ * @interface ApiResponse
+ * @description یک ساختار عمومی برای پاسخ‌های API.
+ * @template T - نوع داده‌های موجود در پاسخ.
+ */
+export interface ApiResponse<T> {
+  status: 'success' | 'error';
+  message: string;
+  data?: T;
+}
+
+/**
+ * @interface FeederRegionData
+ * @description داده‌های مربوط به مناطق و فیدرها.
+ * @property {string[]} regions - لیست کدهای مناطق.
+ * @property {string[]} fidders - لیست کدهای فیدرها (با توجه به خطای تایپی در API).
+ */
+export interface FeederRegionData {
+  regions: string[];
+  fidders: string[]; // نام این پراپرتی در پاسخ API به اشتباه 'fidders' است
+}
+
+/**
+ * @interface PrivateCompaniesData
+ * @description داده‌های مربوط به لیست شرکت‌های خصوصی.
+ * @property {string[]} company_names - لیست نام شرکت‌ها.
+ */
+export interface PrivateCompaniesData {
+  company_names: string[];
+}
+
+// --- انواع پاسخ‌های کامل API ---
+export type FeederRegionResponse = ApiResponse<FeederRegionData>;
+export type PrivateCompaniesResponse = ApiResponse<PrivateCompaniesData>;
+
+
+/**
+ * @interface ConsumptionLimitationFilterData
+ * @description ساختار داده برای ارسال به تابع onFilter.
+ */
+export interface ConsumptionLimitationFilterData {
+  no_limitation_start_date: string;
+  no_limitation_end_date: string;
+  limitation_start_date: string;
+  limitation_end_date: string;
+  region_code?: string[]; // FIX: Made optional
+  fidder_code?: string[]; // FIX: Made optional
+  company_names?: string[];
+}
+/**
+ * @interface ConsumptionLimitationFilterProps
+ * @description پراپ‌های کامپوننت فیلتر.
+ */
+export interface ConsumptionLimitationFilterProps {
+  onFilter: (data: ConsumptionLimitationFilterData) => void;
+  loading?: boolean;
+}
 /**
  * Load continuity analysis result structure
  */
