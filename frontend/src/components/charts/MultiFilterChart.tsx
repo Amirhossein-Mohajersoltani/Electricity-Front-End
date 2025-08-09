@@ -359,7 +359,7 @@ const MultiFilterChart: React.FC<MultiFilterChartProps> = ({
   };
 
   const getYAxisLabel = (): string => {
-    const unit = company === "private" ? "kW/h" : company === "public" ? "MW/h" : "kW/h";
+    const unit = company === "private" ? "kW" : company === "public" ? "MW" : "kW";
     return `توان (${unit})`;
   };
 

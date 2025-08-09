@@ -9,10 +9,10 @@ import {
   Legend,
   ResponsiveContainer
 } from 'recharts';
-import type { 
-  FilterData, 
-  EnergyComparisonData, 
-  EnergyComparisonResultItem 
+import type {
+  FilterData,
+  EnergyComparisonData,
+  EnergyComparisonResultItem
 } from '../../types/api.interfaces';
 
 // ===========================================
@@ -42,6 +42,7 @@ interface MultiFilterEnergyChartProps {
   filters: FilterData[];
   loading: boolean;
   title: string;
+  companyTypes: string;
 }
 
 // ===========================================
@@ -105,11 +106,12 @@ const convertPersianDateForSort = (persianDate: string): number => {
 // MAIN COMPONENT (بخش رندر به‌روزرسانی شده)
 // ===========================================
 
-const MultiFilterEnergyChart: React.FC<MultiFilterEnergyChartProps> = ({ 
-  multiData, 
+const MultiFilterEnergyChart: React.FC<MultiFilterEnergyChartProps> = ({
+  multiData,
   filters,
   loading,
-  title
+  title,
+    companyTypes,
 }) => {
 
   const { processedData, companies } = useMemo(() => {
@@ -117,13 +119,13 @@ const MultiFilterEnergyChart: React.FC<MultiFilterEnergyChartProps> = ({
       return { processedData: [], companies: [] };
     }
 
-    const periodMap = new Map<string, { 
-      period_label: string, 
+    const periodMap = new Map<string, {
+      period_label: string,
       period_start: string,
       period_end: string,
       companies: Map<string, number>
     }>();
-    
+
     const companyInfoList: CompanyInfo[] = [];
     let colorIndex = 0;
     const colors = generateColors(50);
@@ -134,7 +136,7 @@ const MultiFilterEnergyChart: React.FC<MultiFilterEnergyChartProps> = ({
         Object.entries(filterData).forEach(([companyName, companyData]) => {
           if (companyData && companyData.result && Array.isArray(companyData.result) && companyData.result.length > 0) {
             const companyKey = `${filter.id}_${companyName}`;
-            
+
             if (!companyInfoList.find(c => c.key === companyKey)) {
               companyInfoList.push({
                 key: companyKey,
@@ -151,7 +153,7 @@ const MultiFilterEnergyChart: React.FC<MultiFilterEnergyChartProps> = ({
               const periodStart = resultItem.period_start || '';
               const periodEnd = resultItem.period_end || '';
               const periodKey = `${periodStart}_${periodEnd}_${periodLabel}`;
-              
+
               if (!periodMap.has(periodKey)) {
                 periodMap.set(periodKey, {
                   period_label: periodLabel,
@@ -160,7 +162,7 @@ const MultiFilterEnergyChart: React.FC<MultiFilterEnergyChartProps> = ({
                   companies: new Map()
                 });
               }
-              
+
               const period = periodMap.get(periodKey)!;
               period.companies.set(companyKey, resultItem.energetic || 0);
             });
@@ -180,14 +182,14 @@ const MultiFilterEnergyChart: React.FC<MultiFilterEnergyChartProps> = ({
           period_label: period.period_label,
           period_start: period.period_start
         };
-        
+
         companyInfoList.forEach(company => {
           dataPoint[company.key] = period.companies.get(company.key) || 0;
         });
-        
+
         return dataPoint;
       });
-    
+
     return { processedData: chartData, companies: companyInfoList };
   }, [multiData, filters]);
 
@@ -220,7 +222,7 @@ const MultiFilterEnergyChart: React.FC<MultiFilterEnergyChartProps> = ({
           <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
         </div>
       )}
-      
+
       {/* Chart Section */}
       <ResponsiveContainer width="100%" height={450}>
         <BarChart
@@ -228,9 +230,9 @@ const MultiFilterEnergyChart: React.FC<MultiFilterEnergyChartProps> = ({
           margin={{ top: 20, right: 30, left: 40, bottom: 120 }}
         >
           <CartesianGrid strokeDasharray="3 3" vertical={false} />
-          <XAxis 
-            dataKey="period_label" 
-            tick={{ fill: '#6B7280', fontSize: 10 }} 
+          <XAxis
+            dataKey="period_label"
+            tick={{ fill: '#6B7280', fontSize: 10 }}
             axisLine={{ stroke: '#E5E7EB' }}
             tickLine={{ stroke: '#E5E7EB' }}
             angle={-45}
@@ -239,27 +241,35 @@ const MultiFilterEnergyChart: React.FC<MultiFilterEnergyChartProps> = ({
             interval={0}
           />
           <YAxis
-            tickFormatter={formatEnergyValue}
-            tick={{ fill: '#6B7280', fontSize: 12 }}
-            axisLine={false}
-            tickLine={false}
-            label={{ 
-              value: 'مصرف انرژی', 
-              angle: -90, 
-              position: 'insideLeft',
-              style: { textAnchor: 'middle', fill: '#6B7280' },
-              offset: -25
-            }}
-          />
+  tickFormatter={formatEnergyValue}
+  tick={{ fill: '#6B7280', fontSize: 12 }}
+  axisLine={false}
+  tickLine={false}
+  label={{
+    value:
+      (companyTypes === 'private'
+        ? 'kWh'
+        : companyTypes === 'public'
+        ? 'MWh'
+        : companyTypes === 'admin'
+        ? 'kWh'
+        : '') + ' انرژی',
+    angle: -90,
+    position: 'insideLeft',
+    style: { textAnchor: 'middle', fill: '#6B7280' },
+    offset: -25
+  }}
+/>
+
           <Tooltip
             content={({ active, payload, label }) => {
               if (!active || !payload || payload.length === 0) return null;
-              
+
               const periodStart = payload[0]?.payload?.period_start;
               const validPayload = payload.filter(p => p.value && p.value > 0);
-              
+
               if (validPayload.length === 0) return null;
-              
+
               return (
                 <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-lg text-xs" style={{ direction: 'rtl', minWidth: '250px' }}>
                   <p className="font-bold text-sm text-gray-800 mb-2">دوره: {label}</p>
@@ -268,13 +278,23 @@ const MultiFilterEnergyChart: React.FC<MultiFilterEnergyChartProps> = ({
                     {validPayload.map((entry, index) => {
                       const company = companies.find(c => c.key === entry.dataKey);
                       return (
-                        <div key={index} className="flex items-center justify-between my-1">
-                          <div className="flex items-center gap-2">
-                            <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: entry.color }}></span>
-                            <span className="text-gray-700">{company ? `${company.name} (${company.filterName})` : entry.dataKey}</span>
+                          <div key={index} className="flex items-center justify-between my-1">
+                            <div className="flex items-center gap-2">
+                              <span className="w-3 h-3 rounded-sm" style={{backgroundColor: entry.color}}></span>
+                              <span
+                                  className="text-gray-700">{company ? `${company.name} (${company.filterName})` : entry.dataKey}</span>
+                            </div>
+                            {/*<span*/}
+                            {/*    className="font-semibold text-gray-800">{formatEnergyValue(entry.value as number)}</span>*/}
+                            <span
+                                className="font-semibold text-gray-800">{entry.value} {companyTypes === 'private'
+  ? 'kWh'
+  : companyTypes === 'public'
+    ? 'MWh'
+    : companyTypes === "admin"
+      ? 'kWh'
+      : null}</span>
                           </div>
-                          <span className="font-semibold text-gray-800">{formatEnergyValue(entry.value as number)}</span>
-                        </div>
                       );
                     })}
                   </div>
@@ -303,12 +323,12 @@ const MultiFilterEnergyChart: React.FC<MultiFilterEnergyChartProps> = ({
           ))}
         </BarChart>
       </ResponsiveContainer>
-      
+
       {/* Summary Info */}
       <div className="mt-4 text-center text-sm text-gray-600">
         <p>مقایسه {companies.length} شرکت • {processedData.length} دوره زمانی • {filters.length} فیلتر</p>
       </div>
-      
+
       {/* 📊 Data Table Section - START */}
       <div className="mt-8">
         <h4 className="text-md font-semibold text-gray-800 text-center mb-4">
@@ -324,7 +344,7 @@ const MultiFilterEnergyChart: React.FC<MultiFilterEnergyChartProps> = ({
                 {companies.map((company) => (
                   <th key={company.key} className="whitespace-nowrap px-4 py-3 font-semibold text-center text-gray-700">
                     <div className="flex items-center justify-center gap-2">
-                       <span 
+                       <span
                          className="w-3 h-3 rounded-sm"
                          style={{ backgroundColor: company.color }}
                        />
@@ -336,24 +356,35 @@ const MultiFilterEnergyChart: React.FC<MultiFilterEnergyChartProps> = ({
             </thead>
             <tbody className="divide-y divide-gray-200 bg-white">
               {processedData.map((dataPoint, index) => (
-                <tr key={index} className="hover:bg-gray-50">
-                  <td className="whitespace-nowrap px-4 py-3 font-medium text-gray-800">
-                    {dataPoint.period_label}
-                  </td>
-                  {companies.map((company) => (
-                    <td key={company.key} className="whitespace-nowrap px-4 py-3 text-gray-600 text-center">
-                      {formatEnergyValue(dataPoint[company.key] as number) || '۰'}
+                  <tr key={index} className="hover:bg-gray-50">
+                    <td className="whitespace-nowrap px-4 py-3 font-medium text-gray-800">
+                      {dataPoint.period_label}
                     </td>
-                  ))}
-                </tr>
+                    {companies.map((company) => (
+                        // <td key={company.key} className="whitespace-nowrap px-4 py-3 text-gray-600 text-center">
+                        //   {formatEnergyValue(dataPoint[company.key] as number) || '۰'}
+                        // </td>
+                      <td key={company.key} className="whitespace-nowrap px-4 py-3 text-gray-600 text-center">
+                    {dataPoint[company.key] || '۰'} {companyTypes === 'private'
+  ? 'kWh'
+  : companyTypes === 'public'
+    ? 'MWh'
+    : companyTypes === "admin"
+      ? 'kWh'
+      : null}
+                  </td>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-      {/* Data Table Section - END */}
     </div>
-  );
+{/* Data Table Section - END */
+}
+</div>
+)
+  ;
 };
 
 export default MultiFilterEnergyChart;

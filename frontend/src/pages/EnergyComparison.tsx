@@ -226,6 +226,7 @@ const EnergyComparison = () => {
                     filters={dynamicFilters}
                     loading={loading}
                     title=""
+                    companyTypes={companyType}
                   />
                 </div>
               </div>

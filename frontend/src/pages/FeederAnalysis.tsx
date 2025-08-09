@@ -190,10 +190,18 @@ export default function FeederAnalysis() {
 
         <div className="mb-6">
           <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
-            {companyType === 'private' ? 'تحلیل مصرف انرژی شرکت‌های خصوصی' : 'تحلیل مصرف انرژی شرکت‌های عمومی'}
+            {companyType === 'private'
+              ? 'تحلیل مصرف انرژی شرکت‌ خصوصی'
+              : companyType === 'public'
+                ? 'تحلیل مصرف انرژی شرکت‌ توزیع'
+                : companyType === 'admin'
+                  ? 'تحلیل مصرف انرژی شرکت های خصوصی'
+                  : null}
+
+
           </h1>
           <p className="text-gray-600">
-            بررسی و تحلیل جامع عملکرد {companyType === 'private' ? 'شرکت‌های خصوصی' : 'فیدرها و مناطق'}
+            بررسی و تحلیل جامع عملکرد {companyType === 'private' ? 'شرکت‌' : 'شرکت'}
           </p>
           <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="flex items-center gap-2">
