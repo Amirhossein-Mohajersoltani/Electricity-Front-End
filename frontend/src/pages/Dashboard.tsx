@@ -96,7 +96,7 @@ const Dashboard = () => {
                 </svg>
               </div>
               <span className="text-sm font-medium text-gray-900">
-                {isPrivate ? 'تحلیل مصرف برق' : 'تحلیل فیدر'}
+                {isPrivate ? 'تحلیل مصرف انرژی' : 'تحلیل مصرف انرژی'}
               </span>
             </button>
 
@@ -109,7 +109,7 @@ const Dashboard = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               </div>
-              <span className="text-sm font-medium text-gray-900">مقایسه انرژی</span>
+              <span className="text-sm font-medium text-gray-900">مقایسه مصرف انرژی</span>
             </button>
 
             <button

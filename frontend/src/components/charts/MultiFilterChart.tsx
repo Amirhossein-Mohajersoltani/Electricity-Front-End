@@ -350,7 +350,7 @@ const MultiFilterChart: React.FC<MultiFilterChartProps> = ({
       case "daily_profile_mean":
         return "ساعت";
       case "load_continuity":
-        return "نقطه داده";
+        return "ساعت";
       case "long_term":
         return "هفته";
       default:
@@ -359,7 +359,7 @@ const MultiFilterChart: React.FC<MultiFilterChartProps> = ({
   };
 
   const getYAxisLabel = (): string => {
-    const unit = company === "private" ? "kW" : company === "public" ? "MW" : "MW";
+    const unit = company === "private" ? "kW/h" : company === "public" ? "MW/h" : "kW/h";
     return `توان (${unit})`;
   };
 

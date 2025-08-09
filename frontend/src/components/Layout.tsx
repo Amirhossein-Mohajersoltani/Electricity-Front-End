@@ -96,7 +96,6 @@ const Layout = () => {
     if (type === 'admin') {
       return [
         ...baseNavigation,
-        { name: "سهم تعرفه‌ها", href: "/tariff-share", icon: PieChart },
         { name: "تحلیل محدودیت مصرف انرژی", href: "/consumption-limitation", icon: TrendingDown },
         { name: "آپلود اطلاعات", href: "/csv-upload", icon: Upload },
         { name: "مدیریت کاربران", href: "/user-management", icon: Users }, 
