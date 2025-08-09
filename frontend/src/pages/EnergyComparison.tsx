@@ -17,7 +17,6 @@ interface MultiFilterEnergyData {
 }
 
 const EnergyComparison = () => {
-  // دریافت مستقیم companyType و userEmail از useAuth
   const { companyType, userEmail } = useAuth();
 
   const [loading, setLoading] = useState(false);
@@ -44,7 +43,7 @@ const EnergyComparison = () => {
         const years = Array.from(new Set([startYear, endYear]));
         const costumePeriod = filter.costume_period || undefined;
 
-        // شرط اصلی حالا به سادگی بر اساس companyType است
+        // --- منطق برای کاربر ادمین ---
         if (companyType === 'admin') {
           if (!filter.companyNames || filter.companyNames.length === 0) return null;
 
@@ -54,7 +53,8 @@ const EnergyComparison = () => {
             end_date: filter.endDate,
             fidder_code: filter.feeders || [],
             period: filter.period === 'yearly' ? 'year' : filter.period || 'week',
-            region_code: (filter.regions || []).map(Number),
+            // ✅ FIX: تبدیل region_code به رشته
+            region_code: (filter.regions || []).map(String),
             start_date: filter.startDate,
             years: years,
           };
@@ -64,30 +64,54 @@ const EnergyComparison = () => {
             return { id: filter.id, data: response.data as EnergyComparisonData };
           }
         }
-        // منطق برای کاربر خصوصی
+        // --- منطق برای کاربر خصوصی ---
         else if (companyType === 'private') {
           const apiPayload: Omit<EnergyComparisonRequest, 'company_names'> = {
             costume_period: costumePeriod,
             end_date: filter.endDate,
             fidder_code: filter.feeders || [],
             period: filter.period === 'yearly' ? 'year' : filter.period || 'week',
-            region_code: (filter.regions || []).map(Number),
+            // ✅ FIX: تبدیل region_code به رشته
+            region_code: (filter.regions || []).map(String),
             start_date: filter.startDate,
             years: years,
           };
 
           const response = await apiService.getEnergyComparison(apiPayload) as FlexibleApiResponse;
-
           if (response.status === 'success' && response.data?.energy_comparison) {
-            // استفاده از userEmail به عنوان نام یا شناسه شرکت
             const companyName = userEmail || 'شرکت من';
             const companyAPIData = response.data.energy_comparison as CompanyEnergyData;
-
             const energyData: EnergyComparisonData = {
               [companyName]: companyAPIData
             };
             return { id: filter.id, data: energyData };
           }
+        }
+        // --- منطق برای کاربر عمومی (Public) ---
+        else if (companyType === 'public') {
+           const apiPayload: Omit<EnergyComparisonRequest, 'company_names'> = {
+            costume_period: costumePeriod,
+            end_date: filter.endDate,
+            fidder_code: filter.feeders || [],
+            period: filter.period === 'yearly' ? 'yearly' : filter.period || 'weekly',            // ✅ FIX: تبدیل region_code به رشته
+            region_code: (filter.regions || []).map(String),
+            start_date: filter.startDate,
+            years: years,
+          };
+          
+          const response = await apiService.getEnergyComparison(apiPayload) as FlexibleApiResponse;
+
+          if (response.status === 'success' && response.data?.energy_comparison) {
+            const filterName = filter.name || 'تحلیل عمومی';
+            const apiData = response.data.energy_comparison as CompanyEnergyData;
+            const energyData: EnergyComparisonData = {
+              [filterName]: apiData
+            };
+            return { id: filter.id, data: energyData };
+          }
+        }
+        else {
+            console.error(`Error: Unknown companyType '${companyType}'`);
         }
 
         return null;
@@ -143,17 +167,16 @@ const EnergyComparison = () => {
 
   const stats = getDataStatistics();
 
-  // --- بخش JSX برای نمایش کامپوننت در صفحه ---
   return (
     <div className="min-h-screen bg-gray-50 p-3 lg:p-6">
       <div className="max-w-full mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">مقایسه مصرف انرژی</h1>
-          <p className="text-gray-600">مقایسه مصرف انرژی شرکت‌های مختلف در بازه‌های زمانی متنوع</p>
+          <p className="text-gray-600">مقایسه مصرف انرژی شرکت‌ها و فیدرها در بازه‌های زمانی متنوع</p>
           
           {stats.totalCompanies > 0 && !loading && (
             <div className="mt-3 flex flex-wrap gap-4 text-sm text-gray-500">
-              <span>🏢 {stats.totalCompanies} شرکت</span>
+              <span>🏢 {stats.totalCompanies} آیتم</span>
               <span>📊 {stats.totalFilters} فیلتر</span>
               <span>📅 {stats.totalPeriods} دوره زمانی</span>
             </div>
@@ -161,20 +184,15 @@ const EnergyComparison = () => {
         </div>
 
         <div className="w-full">
-          {/* نمایش خطا */}
           {error && !loading && (
             <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-red-600 text-center">{error}</p>
-              <button 
-                onClick={resetFilters}
-                className="mt-2 mx-auto block px-4 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
-              >
+              <button onClick={resetFilters} className="mt-2 mx-auto block px-4 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors">
                 پاک کردن فیلترها
               </button>
             </div>
           )}
 
-          {/* نمایش لودینگ */}
           {loading && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
               <div className="flex justify-center items-center h-80 lg:h-96">
@@ -186,7 +204,6 @@ const EnergyComparison = () => {
             </div>
           )}
 
-          {/* نمایش چارت یا حالت اولیه */}
           {!loading && !error && (
             Object.keys(multiFilterData).length > 0 ? (
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
@@ -195,16 +212,10 @@ const EnergyComparison = () => {
                     <h2 className="text-xl font-bold text-gray-900">نمودار مقایسه انرژی</h2>
                   </div>
                   <div className="flex gap-2">
-                    <button
-                      onClick={() => setShowDynamicFilters(true)}
-                      className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
-                    >
+                    <button onClick={() => setShowDynamicFilters(true)} className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
                       ویرایش فیلترها
                     </button>
-                    <button
-                      onClick={resetFilters}
-                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                    >
+                    <button onClick={resetFilters} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
                       ریست
                     </button>
                   </div>
@@ -227,10 +238,7 @@ const EnergyComparison = () => {
                   <p className="text-gray-500 mb-4">
                     برای شروع، از دکمه فیلتر برای اضافه کردن شرکت‌ها و بازه‌های زمانی استفاده کنید.
                   </p>
-                  <button
-                    onClick={() => setShowDynamicFilters(true)}
-                    className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
-                  >
+                  <button onClick={() => setShowDynamicFilters(true)} className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2">
                     <span>افزودن فیلتر</span>
                     <span>📊</span>
                   </button>
